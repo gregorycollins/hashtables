@@ -1,0 +1,9 @@
+*~
+dist
+dist/**
+test/dist
+test/dist/**
+test/.hpc
+test/.hpc/**
+test/*.tix
+*.prof

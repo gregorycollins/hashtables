@@ -1,0 +1,129 @@
+Name:                hashtables-test
+Version:             0.1
+Author:              Gregory Collins
+Maintainer:          greg@gregorycollins.net
+Copyright:           (c) 2011, Google, Inc.
+Category:            Data
+Build-type:          Simple
+Cabal-version:       >= 1.8
+
+------------------------------------------------------------------------------
+Flag debug
+  Description: if on, spew debugging output to stdout
+  Default: False
+
+
+Flag unsafe-tricks
+  Description: turn on unsafe GHC tricks
+  Default:   False
+
+
+Flag bounds-checking
+  Description: if on, use bounds-checking array accesses
+  Default: False
+
+
+Flag sse41
+  Description: if on, use SSE 4.1 extensions to search cache lines very
+               efficiently
+  Default: False
+
+
+Flag portable
+  Description: if on, use only pure Haskell code and no GHC extensions.
+  Default: False
+
+
+Executable testsuite
+  hs-source-dirs:    ../src suite
+  main-is:           TestSuite.hs
+
+  if !flag(portable)
+    C-sources:       ../cbits/cfuncs.c
+
+  ghc-prof-options:  -prof -auto-all
+
+  if flag(portable) || !flag(unsafe-tricks)
+    ghc-options: -fhpc
+
+  if flag(portable)
+    cpp-options: -DNO_C_SEARCH
+
+  if !flag(portable) && flag(unsafe-tricks) && impl(ghc)
+    cpp-options: -DUNSAFETRICKS
+    build-depends: ghc-prim
+
+  if flag(debug)
+    cpp-options: -DDEBUG
+
+  if flag(bounds-checking)
+    cpp-options: -DBOUNDS_CHECKING
+
+  if !flag(portable) && flag(sse41)
+    cc-options: -DUSE_SSE_4_1 -msse4.1
+    cpp-options: -DUSE_SSE_4_1
+
+  Build-depends:     base >= 4 && <5,
+                     hashable >= 1.1 && <2,
+                     mwc-random == 0.8.*,
+                     primitive,
+                     QuickCheck >= 2.3.0.2,
+                     test-framework >= 0.3.1 && <0.4,
+                     test-framework-quickcheck2 >= 0.2.6 && < 0.3,
+                     vector >= 0.7
+
+  cpp-options: -DTESTSUITE
+
+  if impl(ghc >= 7)
+    ghc-options: -rtsopts
+
+  if impl(ghc >= 6.12.0)
+    ghc-options: -Wall -fwarn-tabs -funbox-strict-fields -O2
+                 -fno-warn-unused-do-bind -threaded
+  else
+    ghc-options: -Wall -fwarn-tabs -funbox-strict-fields -O2 -threaded
+
+
+Executable compute-overhead
+  hs-source-dirs:    ../src suite compute-overhead
+  main-is:           ComputeOverhead.hs
+  C-sources:         ../cbits/cfuncs.c
+
+  ghc-prof-options:  -prof -auto-all
+
+  if flag(portable)
+    cpp-options: -DNO_C_SEARCH
+
+  if !flag(portable) && flag(unsafe-tricks) && impl(ghc)
+    cpp-options: -DUNSAFETRICKS
+    build-depends: ghc-prim
+
+  if flag(debug)
+    cpp-options: -DDEBUG
+
+  if flag(bounds-checking)
+    cpp-options: -DBOUNDS_CHECKING
+
+  if !flag(portable) && flag(sse41)
+    cc-options: -DUSE_SSE_4_1 -msse4.1
+    cpp-options: -DUSE_SSE_4_1
+
+  Build-depends:     base >= 4 && <5,
+                     hashable >= 1.1 && <2,
+                     mwc-random == 0.8.*,
+                     QuickCheck >= 2.3.0.2,
+                     test-framework >= 0.3.1 && <0.4,
+                     test-framework-quickcheck2 >= 0.2.6 && < 0.3,
+                     statistics == 0.8.*,
+                     primitive,
+                     vector >= 0.7
+
+  if impl(ghc >= 7)
+    ghc-options: -rtsopts
+
+  if impl(ghc >= 6.12.0)
+    ghc-options: -Wall -fwarn-tabs -funbox-strict-fields -O2
+                 -fno-warn-unused-do-bind -threaded
+  else
+    ghc-options: -Wall -fwarn-tabs -funbox-strict-fields -O2 -threaded
+
