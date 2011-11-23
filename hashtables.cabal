@@ -165,7 +165,7 @@ Library
 
 
   if flag(portable)
-    cpp-options: -DNO_C_SEARCH
+    cpp-options: -DNO_C_SEARCH -DPORTABLE
 
   if !flag(portable) && flag(unsafe-tricks) && impl(ghc)
     build-depends: ghc-prim

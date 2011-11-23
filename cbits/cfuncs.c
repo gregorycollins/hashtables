@@ -1,5 +1,7 @@
+#include <signal.h>
 #include <stdint.h>
-
+#include <stdio.h>
+#include <unistd.h>
 
 #if defined(USE_SSE_4_1)
 #include <smmintrin.h>
@@ -469,3 +471,13 @@ int lineSearch64_3(uint64_t* array, int start,
     return lineResult64((int)m, start);
 }
 
+void suicide(volatile int* check, int t) {
+    int secs = (3*t + 999999) / 1000000;
+    if (secs < 1) secs = 1;
+
+    sleep(secs);
+    if (*check) {
+        printf("timeout expired, dying!!\n");
+        raise(SIGKILL);
+    }
+}

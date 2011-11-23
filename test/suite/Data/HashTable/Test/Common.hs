@@ -1,5 +1,7 @@
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE RankNTypes   #-}
+{-# LANGUAGE BangPatterns             #-}
+{-# LANGUAGE CPP                      #-}
+{-# LANGUAGE ForeignFunctionInterface #-}
+{-# LANGUAGE RankNTypes               #-}
 
 module Data.HashTable.Test.Common
   ( FixedTableType
@@ -9,7 +11,7 @@ module Data.HashTable.Test.Common
   ) where
 
 ------------------------------------------------------------------------------
-import           Control.Monad                        (liftM, when)
+import           Control.Monad                        (foldM_, liftM, when)
 import           Control.Monad.ST                     (unsafeIOToST)
 import           Data.IORef
 import           Data.List                            hiding ( insert
@@ -20,6 +22,7 @@ import qualified Data.Vector                          as V
 import qualified Data.Vector.Mutable                  as MV
 import           Prelude                              hiding (lookup, mapM_)
 import           System.Random.MWC
+import           System.Timeout
 import           Test.Framework
 import           Test.Framework.Providers.QuickCheck2
 import           Test.QuickCheck
@@ -28,6 +31,11 @@ import           Test.QuickCheck.Monadic
 import qualified Data.HashTable.Class                 as C
 import           Data.HashTable.IO
 
+#ifndef PORTABLE
+import           Control.Concurrent
+import           Foreign (malloc, free, poke, Ptr)
+import           Foreign.C.Types (CInt)
+#endif
 
 ------------------------------------------------------------------------------
 type FixedTableType h = forall k v . IOHashTable h k v
@@ -67,6 +75,7 @@ tests prefix dummyArg = testGroup prefix $ map f ts
          , SomeTest testNewAndInsert
          , SomeTest testGrowTable
          , SomeTest testDelete
+         , SomeTest testNastyFullLookup
          ]
 
 
@@ -250,6 +259,102 @@ testDelete prefix dummyArg =
         ct <- run $ foldM f (0::Int, 0::Int) ht
         assertEq "max + count" (n-1,n-1) ct
         forceType dummyArg ht
+
+
+------------------------------------------------------------------------------
+data Action = Lookup Int
+            | Insert Int
+            | Delete Int
+            deriving Show
+
+
+timeout_ :: Int -> IO a -> IO (Maybe a)
+#ifdef PORTABLE
+timeout_ = timeout
+#else
+
+foreign import ccall safe "suicide"
+  c_suicide :: Ptr CInt -> CInt -> IO ()
+
+
+-- Foreign thread can get blocked here, stalling progress. We'll make damned
+-- sure we bomb out.
+timeout_ t m = do
+    ptr <- malloc
+    poke ptr 1
+    forkOS $ suicide ptr
+    threadDelay 1000
+    r <- timeout t m
+    poke ptr 0
+    return r
+  where
+    suicide ptr = do
+        c_suicide ptr $ toEnum t
+        free ptr
+#endif
+
+
+testNastyFullLookup :: HashTest
+testNastyFullLookup prefix dummyArg =
+    testProperty (prefix ++ "/nastyFullLookup") $ monadicIO $ run go
+  where
+    apply :: forall h . C.HashTable h =>
+             IOHashTable h Int () -> Action -> IO ()
+    apply tbl (Lookup key) = lookup tbl key >> return ()
+    apply tbl (Insert key) = insert tbl key ()
+    apply tbl (Delete key) = delete tbl key
+
+    go = do
+        tbl <- new
+        forceType tbl dummyArg
+        timeout_ 1000000 $ foldM_ (\t k -> apply t k >> return t) tbl testData
+
+    testData =
+      [ Insert 28
+      , Insert 27
+      , Insert 30
+      , Insert 31
+      , Insert 32
+      , Insert 33
+      , Insert 34
+      , Insert 29
+      , Insert 36
+      , Insert 37
+      , Delete 34
+      , Delete 29
+      , Insert 38
+      , Insert 39
+      , Insert 40
+      , Insert 35
+      , Delete 39
+      , Insert 42
+      , Insert 43
+      , Delete 40
+      , Delete 35
+      , Insert 44
+      , Insert 45
+      , Insert 41
+      , Insert 48
+      , Insert 47
+      , Insert 50
+      , Insert 51
+      , Insert 52
+      , Insert 49
+      , Insert 54
+      , Insert 53
+      , Insert 56
+      , Insert 55
+      , Insert 58
+      , Insert 57
+      , Insert 60
+      , Insert 59
+      , Delete 60
+      , Insert 62
+      , Insert 61
+      , Insert 63
+      , Insert 46
+      , Lookup 66
+      ]
 
 
 ------------------------------------------------------------------------------
