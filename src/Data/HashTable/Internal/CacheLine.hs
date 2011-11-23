@@ -234,30 +234,38 @@ prefetchWrite _ _ = return ()
 
 {-# INLINE forwardSearch2 #-}
 forwardSearch2 :: IntArray s -> Int -> Int -> Int -> Int -> ST s Int
-forwardSearch2 !vec !start !end !x1 !x2 = go start
+forwardSearch2 !vec !start !end !x1 !x2 = go start end 0
   where
-    next !i = let !j = i+1
-              in if j == end then 0 else j
+    next !i !e !b = let !j = i+1
+                    in if j == e
+                         then (if b > 0 then (-1,e,1) else (0,start,1))
+                         else (j,e,b)
 
-    go !i = do
+    go !i !e !b = do
         h <- M.readArray vec i
         if h == x1 || h == x2
           then return i
-          else go $ next i
+          else do
+              let (!i',!e',!b') = next i e b
+              if (i' < 0) then return (-1) else go i' e' b'
 
 
 {-# INLINE forwardSearch3 #-}
 forwardSearch3 :: IntArray s -> Int -> Int -> Int -> Int -> Int -> ST s Int
-forwardSearch3 !vec !start !end !x1 !x2 !x3 = go start
+forwardSearch3 !vec !start !end !x1 !x2 !x3 = go start end 0
   where
-    next !i = let !j = i+1
-              in if j == end then 0 else j
+    next !i !e !b = let !j = i+1
+                    in if j == e
+                         then (if b > 0 then (-1,e,1) else (0,start,1))
+                         else (j,e,b)
 
-    go !i = do
+    go !i !e !b = do
         h <- M.readArray vec i
         if h == x1 || h == x2 || h == x3
           then return i
-          else go $ next i
+          else do
+              let (!i',!e',!b') = next i e b
+              if (i' < 0) then return (-1) else go i' e' b'
 
 
 deBruijnBitPositions :: U.Vector Int8

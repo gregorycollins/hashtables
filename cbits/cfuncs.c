@@ -44,8 +44,14 @@ int forwardSearch32_2(uint32_t* array, int start, int end,
                       uint32_t x1, uint32_t x2) {
     uint32_t* ep = array + end;
     uint32_t* p = array + start;
+    int wrapped = 0;
     while (1) {
-        if (p == ep) p = array;
+        if (p == ep) {
+            if (wrapped) return -1;
+            ep = array + start;
+            p = array;
+            wrapped = 1;
+        }
         if (*p == x1 || *p == x2) return p - array;
         ++p;
     }
@@ -56,8 +62,14 @@ int forwardSearch32_3(uint32_t* array, int start, int end,
                       uint32_t x1, uint32_t x2, uint32_t x3) {
     uint32_t* ep = array + end;
     uint32_t* p = array + start;
+    int wrapped = 0;
     while (1) {
-        if (p == ep) p = array;
+        if (p == ep) {
+            if (wrapped) return -1;
+            ep = array + start;
+            p = array;
+            wrapped = 1;
+        }
         if (*p == x1 || *p == x2 || *p == x3) return p - array;
         ++p;
     }
@@ -68,8 +80,14 @@ int forwardSearch64_2(uint64_t* array, int start, int end,
                       uint64_t x1, uint64_t x2) {
     uint64_t* ep = array + end;
     uint64_t* p = array + start;
+    int wrapped = 0;
     while (1) {
-        if (p == ep) p = array;
+        if (p == ep) {
+            if (wrapped) return -1;
+            ep = array + start;
+            p = array;
+            wrapped = 1;
+        }
         if (*p == x1 || *p == x2) return p - array;
         ++p;
     }
@@ -80,8 +98,14 @@ int forwardSearch64_3(uint64_t* array, int start, int end,
                       uint64_t x1, uint64_t x2, uint64_t x3) {
     uint64_t* ep = array + end;
     uint64_t* p = array + start;
+    int wrapped = 0;
     while (1) {
-        if (p == ep) p = array;
+        if (p == ep) {
+            if (wrapped) return -1;
+            ep = array + start;
+            p = array;
+            wrapped = 1;
+        }
         if (*p == x1 || *p == x2 || *p == x3) return p - array;
         ++p;
     }

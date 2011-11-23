@@ -1,5 +1,6 @@
-{-# LANGUAGE BangPatterns    #-}
-{-# LANGUAGE MagicHash       #-}
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE CPP          #-}
+{-# LANGUAGE MagicHash    #-}
 
 {-|
 
@@ -88,6 +89,7 @@ module Data.HashTable.ST.Basic
 
 
 ------------------------------------------------------------------------------
+import           Control.Exception (assert)
 import           Control.Monad hiding (mapM_, foldM)
 import           Control.Monad.ST
 import           Data.Hashable (Hashable)
@@ -199,27 +201,32 @@ lookup htRef !k = do
     lookup' (HashTable sz _ hashes keys values) = do
         let !b = whichBucket h sz
         debug $ "lookup sz=" ++ show sz ++ " h=" ++ show h ++ " b=" ++ show b
-        go b
+        go b 0 sz
 
       where
         !h = hash k
 
-        go !b = {-# SCC "lookup/go" #-} do
-            idx <- forwardSearch2 hashes b sz h emptyMarker
+        go !b !start !end = {-# SCC "lookup/go" #-} do
+            idx <- forwardSearch2 hashes b end h emptyMarker
             debug $ "forwardSearch2 returned " ++ show idx
-            h0  <- U.readArray hashes idx
-            debug $ "h0 was " ++ show h0
+            if (idx < 0 || idx < start || idx >= end)
+               then return Nothing
+               else do
+                 h0  <- U.readArray hashes idx
+                 debug $ "h0 was " ++ show h0
 
-            if recordIsEmpty h0
-              then return Nothing
-              else do
-                k' <- readArray keys idx
-                if k == k'
-                  then do
-                    debug $ "value found at " ++ show idx
-                    v <- readArray values idx
-                    return $! Just v
-                  else go $! idx + 1
+                 if recordIsEmpty h0
+                   then return Nothing
+                   else do
+                     k' <- readArray keys idx
+                     if k == k'
+                       then do
+                         debug $ "value found at " ++ show idx
+                         v <- readArray values idx
+                         return $! Just v
+                       else if idx < b
+                              then go (idx + 1) (idx + 1) b
+                              else go (idx + 1) start end
 {-# INLINE lookup #-}
 
 
@@ -337,9 +344,10 @@ insertRecord !sz !hashes !keys !values !h !key !value = do
     probe !i = {-# SCC "insertRecord/probe" #-} do
         !idx <- forwardSearch2 hashes i sz emptyMarker deletedMarker
         debug $ "forwardSearch2 returned " ++ show idx
-        U.writeArray hashes idx h
-        writeArray keys idx key
-        writeArray values idx value
+        assert (idx >= 0) $ do
+            U.writeArray hashes idx h
+            writeArray keys idx key
+            writeArray values idx value
 
 
 ------------------------------------------------------------------------------
@@ -408,6 +416,7 @@ delete' (HashTable sz loadRef hashes keys values) clearOut k h = do
         debug $ "go: fp=" ++ show fp ++ " b=" ++ show b
         !idx <- forwardSearch3 hashes b sz h emptyMarker deletedMarker
         debug $ "forwardSearch3 returned " ++ show idx
+        assert (idx > 0) $ return ()
         h0 <- U.readArray hashes idx
         debug $ "h0 was " ++ show h0
 
@@ -502,5 +511,8 @@ readRef (HT ref) = readSTRef ref
 ------------------------------------------------------------------------------
 {-# INLINE debug #-}
 debug :: String -> ST s ()
---debug s = unsafeIOToST (putStrLn s)
+#ifdef DEBUG
+debug s = unsafeIOToST (putStrLn s)
+#else
 debug _ = return ()
+#endif
