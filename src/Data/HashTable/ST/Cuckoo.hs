@@ -253,7 +253,9 @@ searchOne :: (Eq k) =>
 searchOne !keys !hashes !k = go
   where
     go !b !h = do
+        debug $ "searchOne: go " ++ show b ++ " " ++ show h
         idx <- cacheLineSearch hashes b h
+        debug $ "searchOne: cacheLineSearch returned " ++ show idx
 
         case idx of
           -1 -> return (-1)
