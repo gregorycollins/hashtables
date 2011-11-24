@@ -24,6 +24,7 @@ import           Prelude                              hiding (lookup, mapM_)
 import           System.Random.MWC
 import           System.Timeout
 import           Test.Framework
+import           Test.Framework.Providers.HUnit
 import           Test.Framework.Providers.QuickCheck2
 import           Test.QuickCheck
 import           Test.QuickCheck.Monadic
@@ -76,6 +77,7 @@ tests prefix dummyArg = testGroup prefix $ map f ts
          , SomeTest testGrowTable
          , SomeTest testDelete
          , SomeTest testNastyFullLookup
+         , SomeTest testForwardSearch3
          ]
 
 
@@ -293,21 +295,80 @@ timeout_ t m = do
         free ptr
 #endif
 
+applyAction :: forall h . C.HashTable h =>
+               IOHashTable h Int () -> Action -> IO ()
+applyAction tbl (Lookup key) = lookup tbl key >> return ()
+applyAction tbl (Insert key) = insert tbl key ()
+applyAction tbl (Delete key) = delete tbl key
 
-testNastyFullLookup :: HashTest
-testNastyFullLookup prefix dummyArg =
-    testProperty (prefix ++ "/nastyFullLookup") $ monadicIO $ run go
+
+testForwardSearch3 :: HashTest
+testForwardSearch3 prefix dummyArg = testCase (prefix ++ "/forwardSearch3") go
   where
-    apply :: forall h . C.HashTable h =>
-             IOHashTable h Int () -> Action -> IO ()
-    apply tbl (Lookup key) = lookup tbl key >> return ()
-    apply tbl (Insert key) = insert tbl key ()
-    apply tbl (Delete key) = delete tbl key
-
     go = do
         tbl <- new
         forceType tbl dummyArg
-        timeout_ 1000000 $ foldM_ (\t k -> apply t k >> return t) tbl testData
+        timeout_ 1000000 $
+            foldM_ (\t k -> applyAction t k >> return t) tbl testData
+        return ()
+
+    testData =
+      [ Insert 65
+      , Insert 66
+      , Insert 67
+      , Insert 74
+      , Insert 75
+      , Insert 76
+      , Insert 77
+      , Insert 79
+      , Insert 80
+      , Insert 81
+      , Insert 82
+      , Insert 83
+      , Insert 84
+      , Delete 81
+      , Delete 82
+      , Insert 85
+      , Insert 86
+      , Insert 87
+      , Insert 88
+      , Insert 89
+      , Insert 90
+      , Insert 78
+      , Insert 93
+      , Insert 94
+      , Insert 95
+      , Insert 96
+      , Insert 97
+      , Insert 92
+      , Delete 93
+      , Delete 94
+      , Delete 95
+      , Delete 96
+      , Insert 99
+      , Insert 100
+      , Insert 101
+      , Insert 102
+      , Insert 103
+      , Insert 104
+      , Insert 98
+      , Insert 91
+      , Insert 108
+      , Insert 109
+      , Insert 110
+      , Insert 111
+      ]
+
+
+testNastyFullLookup :: HashTest
+testNastyFullLookup prefix dummyArg = testCase (prefix ++ "/nastyFullLookup") go
+  where
+    go = do
+        tbl <- new
+        forceType tbl dummyArg
+        timeout_ 1000000 $
+            foldM_ (\t k -> applyAction t k >> return t) tbl testData
+        return ()
 
     testData =
       [ Insert 28

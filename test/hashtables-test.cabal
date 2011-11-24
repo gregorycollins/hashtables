@@ -70,8 +70,10 @@ Executable testsuite
                      mwc-random == 0.8.*,
                      primitive,
                      QuickCheck >= 2.3.0.2,
+                     HUnit >= 1.2 && <2,
                      test-framework >= 0.3.1 && <0.4,
                      test-framework-quickcheck2 >= 0.2.6 && < 0.3,
+                     test-framework-hunit >= 0.2.6 && <3,
                      vector >= 0.7
 
   cpp-options: -DTESTSUITE
@@ -118,6 +120,7 @@ Executable compute-overhead
                      QuickCheck >= 2.3.0.2,
                      test-framework >= 0.3.1 && <0.4,
                      test-framework-quickcheck2 >= 0.2.6 && < 0.3,
+                     test-framework-hunit >= 0.2.6 && <3,
                      statistics == 0.8.*,
                      primitive,
                      vector >= 0.7
