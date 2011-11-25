@@ -26,6 +26,7 @@ import           System.Timeout
 import           Test.Framework
 import           Test.Framework.Providers.HUnit
 import           Test.Framework.Providers.QuickCheck2
+import           Test.HUnit (assertFailure)
 import           Test.QuickCheck
 import           Test.QuickCheck.Monadic
 ------------------------------------------------------------------------------
@@ -270,9 +271,10 @@ data Action = Lookup Int
             deriving Show
 
 
-timeout_ :: Int -> IO a -> IO (Maybe a)
+timeout_ :: Int -> IO a -> IO ()
 #ifdef PORTABLE
-timeout_ = timeout
+timeout_ t m = timeout t m >>= maybe (assertFailure "timeout")
+                                     (const $ return ())
 #else
 
 foreign import ccall safe "suicide"
@@ -288,7 +290,9 @@ timeout_ t m = do
     threadDelay 1000
     r <- timeout t m
     poke ptr 0
-    return r
+    maybe (assertFailure "timeout")
+          (const $ return ())
+          r
   where
     suicide ptr = do
         c_suicide ptr $ toEnum t
@@ -310,7 +314,6 @@ testForwardSearch3 prefix dummyArg = testCase (prefix ++ "/forwardSearch3") go
         forceType tbl dummyArg
         timeout_ 1000000 $
             foldM_ (\t k -> applyAction t k >> return t) tbl testData
-        return ()
 
     testData =
       [ Insert 65
@@ -368,7 +371,6 @@ testNastyFullLookup prefix dummyArg = testCase (prefix ++ "/nastyFullLookup") go
         forceType tbl dummyArg
         timeout_ 1000000 $
             foldM_ (\t k -> applyAction t k >> return t) tbl testData
-        return ()
 
     testData =
       [ Insert 28
