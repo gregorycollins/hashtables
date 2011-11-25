@@ -22,12 +22,13 @@ import qualified Data.Vector                          as V
 import qualified Data.Vector.Mutable                  as MV
 import           Prelude                              hiding (lookup, mapM_)
 import           System.Random.MWC
-import           System.Timeout
+import qualified System.Timeout                       as S
 import           Test.Framework
 import           Test.Framework.Providers.HUnit
 import           Test.Framework.Providers.QuickCheck2
 import           Test.QuickCheck
 import           Test.QuickCheck.Monadic
+import           Test.HUnit.Lang
 ------------------------------------------------------------------------------
 import qualified Data.HashTable.Class                 as C
 import           Data.HashTable.IO
@@ -269,10 +270,13 @@ data Action = Lookup Int
             | Delete Int
             deriving Show
 
+timeout :: Int -> IO a -> Assertion
+timeout t m = do
+  maybe (assertFailure "timeout") (\_ -> return ()) =<< timeout_ t m
 
 timeout_ :: Int -> IO a -> IO (Maybe a)
 #ifdef PORTABLE
-timeout_ = timeout
+timeout_ = S.timeout
 #else
 
 foreign import ccall safe "suicide"
@@ -284,9 +288,9 @@ foreign import ccall safe "suicide"
 timeout_ t m = do
     ptr <- malloc
     poke ptr 1
-    forkOS $ suicide ptr
+    _ <- forkOS $ suicide ptr
     threadDelay 1000
-    r <- timeout t m
+    r <- S.timeout t m
     poke ptr 0
     return r
   where
@@ -308,9 +312,8 @@ testForwardSearch3 prefix dummyArg = testCase (prefix ++ "/forwardSearch3") go
     go = do
         tbl <- new
         forceType tbl dummyArg
-        timeout_ 1000000 $
-            foldM_ (\t k -> applyAction t k >> return t) tbl testData
-        return ()
+        timeout 1000000 $
+          foldM_ (\t k -> applyAction t k >> return t) tbl testData
 
     testData =
       [ Insert 65
@@ -366,9 +369,8 @@ testNastyFullLookup prefix dummyArg = testCase (prefix ++ "/nastyFullLookup") go
     go = do
         tbl <- new
         forceType tbl dummyArg
-        timeout_ 1000000 $
+        timeout 1000000 $
             foldM_ (\t k -> applyAction t k >> return t) tbl testData
-        return ()
 
     testData =
       [ Insert 28
