@@ -313,7 +313,7 @@ testForwardSearch3 prefix dummyArg = testCase (prefix ++ "/forwardSearch3") go
         tbl <- new
         forceType tbl dummyArg
         timeout 1000000 $
-          foldM_ (\t k -> applyAction t k >> return t) tbl testData
+            foldM_ (\t k -> applyAction t k >> return t) tbl testData
 
     testData =
       [ Insert 65
