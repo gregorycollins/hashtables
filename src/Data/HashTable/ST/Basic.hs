@@ -14,6 +14,10 @@ you...
   * don't care that a table resize might pause for a long time to rehash all
     of the key-value mappings.
 
+  * have a workload which is not heavy with deletes; deletes clutter the table
+    with deleted markers and force the table to be completely rehashed fairly
+    often.
+
 /Details:/
 
 Of the hash tables in this collection, this hash table has the best insert and
@@ -95,6 +99,7 @@ import           Control.Monad.ST
 import           Data.Hashable (Hashable)
 import qualified Data.Hashable as H
 import           Data.Maybe
+import           Data.Monoid
 import           Data.STRef
 import           GHC.Exts
 import           Prelude hiding (lookup, read, mapM_)
@@ -111,13 +116,14 @@ import qualified Data.HashTable.Class as C
 newtype HashTable s k v = HT (STRef s (HashTable_ s k v))
 
 data HashTable_ s k v = HashTable
-    { _size   :: {-# UNPACK #-} !Int
-    , _load   :: !(U.IntArray s)  -- ^ prefer unboxed vector here to STRef
-                                  -- because I know it will be appropriately
-                                  -- strict
-    , _hashes :: !(U.IntArray s)
-    , _keys   :: {-# UNPACK #-} !(MutableArray s k)
-    , _values :: {-# UNPACK #-} !(MutableArray s v)
+    { _size    :: {-# UNPACK #-} !Int
+    , _load    :: !(U.IntArray s)  -- ^ How many entries in the table? Prefer
+                                   -- unboxed vector here to STRef because I
+                                   -- know it will be appropriately strict
+    , _delLoad :: !(U.IntArray s)  -- ^ How many deleted entries in the table?
+    , _hashes  :: !(U.IntArray s)
+    , _keys    :: {-# UNPACK #-} !(MutableArray s k)
+    , _values  :: {-# UNPACK #-} !(MutableArray s v)
     }
 
 
@@ -168,8 +174,8 @@ newSizedReal m = do
     k  <- newArray m undefined
     v  <- newArray m undefined
     ld <- U.newArray 1
-    return $! HashTable m ld h k v
-
+    dl <- U.newArray 1
+    return $! HashTable m ld dl h k v
 
 
 ------------------------------------------------------------------------------
@@ -188,8 +194,6 @@ delete htRef k = do
 {-# INLINE delete #-}
 
 
-
-
 ------------------------------------------------------------------------------
 -- | See the documentation for this function in
 -- "Data.HashTable.Class#v:lookup".
@@ -198,7 +202,7 @@ lookup htRef !k = do
     ht <- readRef htRef
     lookup' ht
   where
-    lookup' (HashTable sz _ hashes keys values) = do
+    lookup' (HashTable sz _ _ hashes keys values) = do
         let !b = whichBucket h sz
         debug $ "lookup sz=" ++ show sz ++ " h=" ++ show h ++ " b=" ++ show b
         go b 0 sz
@@ -269,7 +273,7 @@ insert htRef !k !v = do
 foldM :: (a -> (k,v) -> ST s a) -> a -> HashTable s k v -> ST s a
 foldM f seed0 htRef = readRef htRef >>= work
   where
-    work (HashTable sz _ hashes keys values) = go 0 seed0
+    work (HashTable sz _ _ hashes keys values) = go 0 seed0
       where
         go !i !seed | i >= sz = return seed
                     | otherwise = do
@@ -289,7 +293,7 @@ foldM f seed0 htRef = readRef htRef >>= work
 mapM_ :: ((k,v) -> ST s b) -> HashTable s k v -> ST s ()
 mapM_ f htRef = readRef htRef >>= work
   where
-    work (HashTable sz _ hashes keys values) = go 0
+    work (HashTable sz _ _ hashes keys values) = go 0
       where
         go !i | i >= sz = return ()
               | otherwise = do
@@ -309,14 +313,14 @@ mapM_ f htRef = readRef htRef >>= work
 computeOverhead :: HashTable s k v -> ST s Double
 computeOverhead htRef = readRef htRef >>= work
   where
-    work (HashTable sz' loadRef _ _ _) = do
+    work (HashTable sz' loadRef _ _ _ _) = do
         !ld <- U.readArray loadRef 0
         let k = fromIntegral ld / sz
         return $ constOverhead / sz + overhead k
       where
         sz = fromIntegral sz'
         -- Change these if you change the representation
-        constOverhead = 10
+        constOverhead = 14
         overhead k = 3 / k - 2
 
 
@@ -337,7 +341,7 @@ insertRecord :: Int
              -> ST s ()
 insertRecord !sz !hashes !keys !values !h !key !value = do
     let !b = whichBucket h sz
-    debug $ "insertRecord sz=" ++ show sz ++ "h=" ++ show h ++ " b=" ++ show b
+    debug $ "insertRecord sz=" ++ show sz ++ " h=" ++ show h ++ " b=" ++ show b
     probe b
 
   where
@@ -354,28 +358,38 @@ insertRecord !sz !hashes !keys !values !h !key !value = do
 checkOverflow :: (Eq k, Hashable k) =>
                  (HashTable_ s k v)
               -> ST s (HashTable_ s k v)
-checkOverflow ht@(HashTable sz ldRef _ _ _) = do
+checkOverflow ht@(HashTable sz ldRef delRef _ _ _) = do
     !ld <- U.readArray ldRef 0
     let !ld' = ld + 1
     U.writeArray ldRef 0 ld'
+    !dl <- U.readArray delRef 0
 
-    if fromIntegral ld / fromIntegral sz > maxLoad
-      then growTable ht
+    debug $ concat [ "checkOverflow: sz="
+                   , show sz
+                   , " entries="
+                   , show ld
+                   , " deleted="
+                   , show dl ]
+
+    if fromIntegral (ld + dl) / fromIntegral sz > maxLoad
+      then if dl > ld `div` 2
+             then rehashAll ht sz
+             else growTable ht
       else return ht
 
 
 ------------------------------------------------------------------------------
-growTable :: Hashable k => HashTable_ s k v -> ST s (HashTable_ s k v)
-growTable (HashTable sz loadRef hashes keys values) = do
-    let !sz' = bumpSize sz
+rehashAll :: Hashable k => HashTable_ s k v -> Int -> ST s (HashTable_ s k v)
+rehashAll (HashTable sz loadRef _ hashes keys values) sz' = do
+    debug $ "rehashing: old size " ++ show sz ++ ", new size " ++ show sz'
     ht' <- newSizedReal sz'
-    let (HashTable _ loadRef' newHashes newKeys newValues) = ht'
+    let (HashTable _ loadRef' _ newHashes newKeys newValues) = ht'
     U.readArray loadRef 0 >>= U.writeArray loadRef' 0
-    rehash sz' newHashes newKeys newValues
+    rehash newHashes newKeys newValues
     return ht'
 
   where
-    rehash sz' newHashes newKeys newValues = go 0
+    rehash newHashes newKeys newValues = go 0
       where
         go !i | i >= sz   = return ()
               | otherwise = {-# SCC "growTable/rehash" #-} do
@@ -389,6 +403,30 @@ growTable (HashTable sz loadRef hashes keys values) = do
 
 
 ------------------------------------------------------------------------------
+growTable :: Hashable k => HashTable_ s k v -> ST s (HashTable_ s k v)
+growTable ht@(HashTable sz _ _ _ _ _) = do
+    let !sz' = bumpSize sz
+    rehashAll ht sz'
+
+
+------------------------------------------------------------------------------
+-- Helper data structure for delete'
+data Slot = Slot {
+      _slot       :: {-# UNPACK #-} !Int
+    , _wasDeleted :: {-# UNPACK #-} !Int  -- we use Int because Bool won't
+                                          -- unpack
+    }
+  deriving (Show)
+
+
+------------------------------------------------------------------------------
+instance Monoid Slot where
+    mempty = Slot maxBound 0
+    (Slot x1 b1) `mappend` (Slot x2 b2) =
+        if x1 == maxBound then Slot x2 b2 else Slot x1 b1
+
+
+------------------------------------------------------------------------------
 -- Returns the slot in the array where it would be safe to write the given key.
 delete' :: (Hashable k, Eq k) =>
            (HashTable_ s k v)
@@ -396,63 +434,97 @@ delete' :: (Hashable k, Eq k) =>
         -> k
         -> Int
         -> ST s Int
-delete' (HashTable sz loadRef hashes keys values) clearOut k h = do
-    let !b = whichBucket h sz
+delete' (HashTable sz loadRef delRef hashes keys values) clearOut k h = do
     debug $ "delete': sz=" ++ show sz ++ " h=" ++ show h
-            ++ " b=" ++ show b
-    (found,b') <- go Nothing b
-    when found $ do
-        !ld <- U.readArray loadRef 0
-        let !ld' = ld - 1
-        U.writeArray loadRef 0 ld'
+            ++ " b0=" ++ show b0
+    (found, slot) <- go mempty b0 False
+
+    let !b' = _slot slot
+
+    when found $ bump loadRef (-1)
+
+    -- bump the delRef lower if we're writing over a deleted marker
+    when (not clearOut && _wasDeleted slot == 1) $ bump delRef (-1)
     return b'
 
   where
-    delPlace !fp !b    = maybe (Just b) (const fp) fp
-    choosePlace !fp !b = fromMaybe b fp
-    samePlace !fp !b   = maybe (True) (== b) fp
+    bump ref i = do
+        !ld <- U.readArray ref 0
+        U.writeArray ref 0 $! ld + i
 
-    go !fp !b = do
+    !b0 = whichBucket h sz
+
+    haveWrapped !(Slot fp _) !b = if fp == maxBound
+                                    then False
+                                    else b <= fp
+
+    -- arguments:
+
+    --   * fp    maintains the slot in the array where it would be safe to
+    --           write the given key
+    --   * b     search the buckets array starting at this index.
+    --   * wrap  True if we've wrapped around, False otherwise
+
+    go !fp !b !wrap = do
         debug $ "go: fp=" ++ show fp ++ " b=" ++ show b
+                  ++ ", wrap=" ++ show wrap
         !idx <- forwardSearch3 hashes b sz h emptyMarker deletedMarker
         debug $ "forwardSearch3 returned " ++ show idx
-        assert (idx > 0) $ return ()
-        h0 <- U.readArray hashes idx
-        debug $ "h0 was " ++ show h0
 
-        if recordIsEmpty h0
-          then do
-              let pl = choosePlace fp idx
-              debug $ "empty, returning " ++ show pl
-              return (False, pl)
-          else
-            if recordIsDeleted h0
+        if wrap && idx >= b0
+          -- we wrapped around in the search and didn't find our hash code;
+          -- this means that the table is full of deleted elements. Just return
+          -- the first place we'd be allowed to insert.
+          --
+          -- TODO: if we get in this situation we should probably just rehash
+          -- the table, because every insert is going to be O(n).
+          then return $!
+                   (False, fp `mappend` (Slot (error "impossible") 0))
+          else do
+            -- because the table isn't full, we know that there must be either
+            -- an empty or a deleted marker somewhere in the table. Assert this
+            -- here.
+            assert (idx > 0) $ return ()
+            h0 <- U.readArray hashes idx
+            debug $ "h0 was " ++ show h0
+
+            if recordIsEmpty h0
               then do
-                  let pl = delPlace fp idx
-                  debug $ "deleted, cont with pl=" ++ show pl
-                  go pl $ idx + 1
-              else
-                if h == h0
+                  let pl = fp `mappend` (Slot idx 0)
+                  debug $ "empty, returning " ++ show pl
+                  return (False, pl)
+              else do
+                let !wrap' = haveWrapped fp idx
+                if recordIsDeleted h0
                   then do
-                    k' <- readArray keys idx
-                    if k == k'
+                      let pl = fp `mappend` (Slot idx 1)
+                      debug $ "deleted, cont with pl=" ++ show pl
+                      go pl (idx + 1) wrap'
+                  else
+                    if h == h0
                       then do
-                        debug $ "found at " ++ show idx
-                        debug $ "clearout=" ++ show clearOut
-                        debug $ "sp? " ++ show (samePlace fp idx)
-                        -- "clearOut" is set if we intend to write a new
-                        -- element into the slot. If we're doing an update and
-                        -- we found the old key, instead of writing "deleted"
-                        -- and then re-writing the new element there, we can
-                        -- just write the new element. This only works if we
-                        -- were planning on writing the new element here.
-                        when (clearOut || not (samePlace fp idx)) $ do
-                            U.writeArray hashes idx 1
-                            writeArray keys idx undefined
-                            writeArray values idx undefined
-                        return (True, choosePlace fp idx)
-                      else go fp $ idx + 1
-                  else go fp $ idx + 1
+                        k' <- readArray keys idx
+                        if k == k'
+                          then do
+                            let samePlace = _slot fp == idx
+                            debug $ "found at " ++ show idx
+                            debug $ "clearout=" ++ show clearOut
+                            debug $ "sp? " ++ show samePlace
+                            -- "clearOut" is set if we intend to write a new
+                            -- element into the slot. If we're doing an update
+                            -- and we found the old key, instead of writing
+                            -- "deleted" and then re-writing the new element
+                            -- there, we can just write the new element. This
+                            -- only works if we were planning on writing the
+                            -- new element here.
+                            when (clearOut || not samePlace) $ do
+                                bump delRef 1
+                                U.writeArray hashes idx 1
+                                writeArray keys idx undefined
+                                writeArray values idx undefined
+                            return (True, fp `mappend` (Slot idx 0))
+                          else go fp (idx + 1) wrap'
+                      else go fp (idx + 1) wrap'
 
 ------------------------------------------------------------------------------
 maxLoad :: Double

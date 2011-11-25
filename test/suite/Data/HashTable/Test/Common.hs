@@ -312,7 +312,7 @@ testForwardSearch3 prefix dummyArg = testCase (prefix ++ "/forwardSearch3") go
     go = do
         tbl <- new
         forceType tbl dummyArg
-        timeout_ 1000000 $
+        timeout_ 3000000 $
             foldM_ (\t k -> applyAction t k >> return t) tbl testData
 
     testData =
@@ -369,7 +369,7 @@ testNastyFullLookup prefix dummyArg = testCase (prefix ++ "/nastyFullLookup") go
     go = do
         tbl <- new
         forceType tbl dummyArg
-        timeout_ 1000000 $
+        timeout_ 3000000 $
             foldM_ (\t k -> applyAction t k >> return t) tbl testData
 
     testData =
