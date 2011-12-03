@@ -1,12 +1,15 @@
 #include <signal.h>
 #include <stdint.h>
 #include <stdio.h>
+#ifdef WIN32
+#include <windows.h>
+#else
 #include <unistd.h>
+#endif
 
 #if defined(USE_SSE_4_1)
 #include <smmintrin.h>
 #endif
-
 
 #if defined(__GNUC__)
 #define PREFETCH_READ(x) (__builtin_prefetch(x, 0, 3))
@@ -233,7 +236,7 @@ uint32_t lineMask32_3(uint32_t* array, int start,
     case 14: m |= (mask(*p, x1) | mask(*p, x2) | mask(*p, x3)) & 0x4000; ++p;
     case 15: m |= (mask(*p, x1) | mask(*p, x2) | mask(*p, x3)) & 0x8000; ++p;
     }
-    
+
     return m >> offset;
 }
 
@@ -289,7 +292,7 @@ inline uint64_t cmp_and_mask_3(__m128i val, __m128i x0, __m128i x1,
 uint64_t lineMask64(uint64_t* array, int start0, uint64_t v1) {
     int offset = start0 & 0x7;
     int start  = start0 & ~0x7;
-    
+
     __m128i* p = (__m128i*) (&array[start]);
     __m128i x1 = _mm_cvtsi32_si128(0);
     x1 = _mm_insert_epi64(x1, v1, 0);
@@ -297,7 +300,7 @@ uint64_t lineMask64(uint64_t* array, int start0, uint64_t v1) {
     uint64_t dest_mask = 0;
 
     // x1 contains two 64-bit copies of the value to look for
-    
+
     // words 0, 1
     __m128i x = _mm_load_si128(p);
     dest_mask = cmp_and_mask(x, x1);
@@ -312,7 +315,7 @@ uint64_t lineMask64(uint64_t* array, int start0, uint64_t v1) {
     x = _mm_load_si128(p);
     dest_mask |= (cmp_and_mask(x, x1) << 4);
     p = (__m128i*) (&array[start+6]);
-    
+
     // words 6, 7
     x = _mm_load_si128(p);
     dest_mask |= (cmp_and_mask(x, x1) << 6);
@@ -324,7 +327,7 @@ uint64_t lineMask64(uint64_t* array, int start0, uint64_t v1) {
 uint64_t lineMask64_2(uint64_t* array, int start0, uint64_t v1, uint64_t v2) {
     int offset = start0 & 0x7;
     int start  = start0 & ~0x7;
-    
+
     __m128i* p = (__m128i*) (&array[start]);
     __m128i x1 = _mm_cvtsi32_si128(0);
     x1 = _mm_insert_epi64(x1, v1, 0);
@@ -350,7 +353,7 @@ uint64_t lineMask64_2(uint64_t* array, int start0, uint64_t v1, uint64_t v2) {
     x = _mm_load_si128(p);
     dest_mask |= (cmp_and_mask_2(x, x1, x2) << 4);
     p = (__m128i*) (&array[start+6]);
-    
+
     // words 6, 7
     x = _mm_load_si128(p);
     dest_mask |= (cmp_and_mask_2(x, x1, x2) << 6);
@@ -363,7 +366,7 @@ uint64_t lineMask64_3(uint64_t* array, int start0,
                       uint64_t v1, uint64_t v2, uint64_t v3) {
     int offset = start0 & 0x7;
     int start  = start0 & ~0x7;
-    
+
     __m128i* p = (__m128i*) (&array[start]);
     __m128i x1 = _mm_cvtsi32_si128(0);
     x1 = _mm_insert_epi64(x1, v1, 0);
@@ -393,7 +396,7 @@ uint64_t lineMask64_3(uint64_t* array, int start0,
     x = _mm_load_si128(p);
     dest_mask |= (cmp_and_mask_3(x, x1, x2, x3) << 4);
     p = (__m128i*) (&array[start+6]);
-    
+
     // words 6, 7
     x = _mm_load_si128(p);
     dest_mask |= (cmp_and_mask_3(x, x1, x2, x3) << 6);
@@ -462,7 +465,7 @@ uint64_t lineMask64_3(uint64_t* array, int start,
     case 6: m |= (mask(*p, x1) | mask(*p, x2) | mask(*p, x3)) & 0x40; ++p;
     case 7: m |= (mask(*p, x1) | mask(*p, x2) | mask(*p, x3)) & 0x80; ++p;
     }
-    
+
     return m >> offset;
 }
 
@@ -498,10 +501,17 @@ int lineSearch64_3(uint64_t* array, int start,
 void suicide(volatile int* check, int t) {
     int secs = (3*t + 999999) / 1000000;
     if (secs < 1) secs = 1;
-
+#ifdef WIN32
+    Sleep(secs * 1000);
+#else
     sleep(secs);
+#endif
     if (*check) {
         printf("timeout expired, dying!!\n");
+#ifdef WIN32
+        abort();
+#else
         raise(SIGKILL);
+#endif
     }
 }

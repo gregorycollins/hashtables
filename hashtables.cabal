@@ -1,5 +1,5 @@
 Name:                hashtables
-Version:             1.0.1.0
+Version:             1.0.1.1
 Synopsis:            Mutable hash tables in the ST monad
 Homepage:            http://github.com/gregorycollins/hashtables
 License:             BSD3
@@ -46,7 +46,7 @@ Description:
        and lookup performance for higher space efficiency and much shorter
        delays when expanding the table. In most cases, benchmarks show this
        table to be currently slightly faster than @Data.HashTable@ from the
-       Haskell base library. 
+       Haskell base library.
   .
   It is recommended to create a concrete type alias in your code when using this
   package, i.e.:
