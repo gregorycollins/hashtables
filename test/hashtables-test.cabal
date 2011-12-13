@@ -48,9 +48,7 @@ Executable testsuite
 
   if flag(portable)
     cpp-options: -DNO_C_SEARCH -DPORTABLE
-  else
-    build-depends: unix >= 2.3 && <3
-    
+
   if !flag(portable) && flag(unsafe-tricks) && impl(ghc)
     cpp-options: -DUNSAFETRICKS
     build-depends: ghc-prim
@@ -97,8 +95,6 @@ Executable compute-overhead
 
   if flag(portable)
     cpp-options: -DNO_C_SEARCH -DPORTABLE
-  else
-    build-depends: unix >= 2.3 && <3
 
   if !flag(portable) && flag(unsafe-tricks) && impl(ghc)
     cpp-options: -DUNSAFETRICKS
