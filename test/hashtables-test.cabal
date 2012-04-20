@@ -69,7 +69,7 @@ Executable testsuite
                      primitive,
                      QuickCheck                 >= 2.3.0.2,
                      HUnit                      >= 1.2   && <2,
-                     test-framework             >= 0.3.1 && <0.6,
+                     test-framework             >= 0.3.1 && <0.7,
                      test-framework-quickcheck2 >= 0.2.6 && <0.3,
                      test-framework-hunit       >= 0.2.6 && <3,
                      vector                     >= 0.7
@@ -115,7 +115,7 @@ Executable compute-overhead
                      mwc-random                 >= 0.8     && <0.13,
                      QuickCheck                 >= 2.3.0.2 && <3,
                      HUnit                      >= 1.2     && <2,
-                     test-framework             >= 0.3.1   && <0.6,
+                     test-framework             >= 0.3.1   && <0.7,
                      test-framework-quickcheck2 >= 0.2.6   && <0.3,
                      test-framework-hunit       >= 0.2.6   && <3,
                      statistics                 >= 0.8     && <0.11,
