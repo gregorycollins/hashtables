@@ -253,15 +253,15 @@ iShiftRL  :: Int -> Int -> Int
 --------------------------------------------------------------------}
 {-# INLINE shiftRL #-}
 shiftRL (W# x) (I# i)
-  = W# (uncheckedShiftRL# x i)
+  = W# (shiftRL# x i)
 
 {-# INLINE iShiftL #-}
 iShiftL (I# x) (I# i)
-  = I# (uncheckedIShiftL# x i)
+  = I# (iShiftL# x i)
 
 {-# INLINE iShiftRL #-}
 iShiftRL (I# x) (I# i)
-  = I# (uncheckedIShiftRL# x i)
+  = I# (iShiftRL# x i)
 
 #else
 shiftRL x i   = shiftR x i
