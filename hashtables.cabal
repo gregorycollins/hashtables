@@ -1,5 +1,5 @@
 Name:                hashtables
-Version:             1.0.1.4
+Version:             1.0.1.5
 Synopsis:            Mutable hash tables in the ST monad
 Homepage:            http://github.com/gregorycollins/hashtables
 License:             BSD3
@@ -107,6 +107,17 @@ Description:
 Extra-Source-Files:
   README.md,
   haddock.sh,
+  benchmark/hashtable-benchmark.cabal,
+  benchmark/LICENSE,
+  benchmark/src/Criterion/Collection/Internal/Types.hs,
+  benchmark/src/Criterion/Collection/Chart.hs,
+  benchmark/src/Criterion/Collection/Main.hs,
+  benchmark/src/Criterion/Collection/Types.hs,
+  benchmark/src/Criterion/Collection/Sample.hs,
+  benchmark/src/Main.hs,
+  benchmark/src/Data/Vector/Algorithms/Shuffle.hs,
+  benchmark/src/Data/Benchmarks/UnorderedCollections/Distributions.hs,
+  benchmark/src/Data/Benchmarks/UnorderedCollections/Types.hs,
   test/compute-overhead/ComputeOverhead.hs,
   test/hashtables-test.cabal,
   test/runTestsAndCoverage.sh,
@@ -158,11 +169,10 @@ Library
                      Data.HashTable.Internal.Utils,
                      Data.HashTable.Internal.Linear.Bucket
 
-  Build-depends:     base >= 4 && <5,
-                     hashable >= 1.1 && <2,
+  Build-depends:     base      >= 4   && <5,
+                     hashable  >= 1.1 && <2,
                      primitive,
-                     vector >= 0.7
-
+                     vector    >= 0.7 && < 0.10
 
   if flag(portable)
     cpp-options: -DNO_C_SEARCH -DPORTABLE
