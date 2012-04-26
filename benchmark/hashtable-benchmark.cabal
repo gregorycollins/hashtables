@@ -43,4 +43,4 @@ Executable hashtable-benchmark
 
   ghc-options: -O2 -Wall -fwarn-tabs -funbox-strict-fields -threaded
                -fno-warn-unused-do-bind -rtsopts
-               -with-rtsopts="-A4M -H2G"
+               -with-rtsopts=-H2G -with-rtsopts=-A4M
