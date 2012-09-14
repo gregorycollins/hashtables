@@ -3,7 +3,7 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE MagicHash                #-}
 
-module Data.HashTable.Internal.CacheLine 
+module Data.HashTable.Internal.CacheLine
   ( cacheLineSearch
   , cacheLineSearch2
   , cacheLineSearch3
@@ -24,6 +24,7 @@ import           Data.HashTable.Internal.IntArray (IntArray)
 import qualified Data.HashTable.Internal.IntArray as M
 
 #ifndef NO_C_SEARCH
+import           Control.Monad
 import           Foreign.C.Types
 #else
 import           Data.Bits
@@ -43,36 +44,36 @@ prefetchWrite :: IntArray s -> Int -> ST s ()
 
 #ifndef NO_C_SEARCH
 foreign import ccall unsafe "lineSearch32"
-  c_lineSearch32 :: Ptr a -> CInt -> CUInt -> IO Int
+  c_lineSearch32 :: Ptr a -> CInt -> CUInt -> IO CInt
 
 foreign import ccall unsafe "lineSearch64"
-  c_lineSearch64 :: Ptr a -> CInt -> CULong -> IO Int
+  c_lineSearch64 :: Ptr a -> CInt -> CULong -> IO CInt
 
 foreign import ccall unsafe "lineSearch32_2"
-  c_lineSearch32_2 :: Ptr a -> CInt -> CUInt -> CUInt -> IO Int
+  c_lineSearch32_2 :: Ptr a -> CInt -> CUInt -> CUInt -> IO CInt
 
 foreign import ccall unsafe "lineSearch64_2"
-  c_lineSearch64_2 :: Ptr a -> CInt -> CULong -> CULong -> IO Int
+  c_lineSearch64_2 :: Ptr a -> CInt -> CULong -> CULong -> IO CInt
 
 foreign import ccall unsafe "lineSearch32_3"
-  c_lineSearch32_3 :: Ptr a -> CInt -> CUInt -> CUInt -> CUInt -> IO Int
+  c_lineSearch32_3 :: Ptr a -> CInt -> CUInt -> CUInt -> CUInt -> IO CInt
 
 foreign import ccall unsafe "lineSearch64_3"
-  c_lineSearch64_3 :: Ptr a -> CInt -> CULong -> CULong -> CULong -> IO Int
+  c_lineSearch64_3 :: Ptr a -> CInt -> CULong -> CULong -> CULong -> IO CInt
 
 foreign import ccall unsafe "forwardSearch32_2"
-  c_forwardSearch32_2 :: Ptr a -> CInt -> CInt -> CUInt -> CUInt -> IO Int
+  c_forwardSearch32_2 :: Ptr a -> CInt -> CInt -> CUInt -> CUInt -> IO CInt
 
 foreign import ccall unsafe "forwardSearch32_3"
   c_forwardSearch32_3 :: Ptr a -> CInt -> CInt -> CUInt -> CUInt -> CUInt
-                      -> IO Int
+                      -> IO CInt
 
 foreign import ccall unsafe "forwardSearch64_2"
-  c_forwardSearch64_2 :: Ptr a -> CInt -> CInt -> CULong -> CULong -> IO Int
+  c_forwardSearch64_2 :: Ptr a -> CInt -> CInt -> CULong -> CULong -> IO CInt
 
 foreign import ccall unsafe "forwardSearch64_3"
   c_forwardSearch64_3 :: Ptr a -> CInt -> CInt -> CULong -> CULong -> CULong
-                      -> IO Int
+                      -> IO CInt
 
 foreign import ccall unsafe "prefetchCacheLine32_read"
   prefetchCacheLine32_read :: Ptr a -> CInt -> IO ()
@@ -111,8 +112,8 @@ prefetchWrite a i = unsafeIOToST c
 
 {-# INLINE forwardSearch2 #-}
 forwardSearch2 :: IntArray s -> Int -> Int -> Int -> Int -> ST s Int
-forwardSearch2 !vec !start !end !x1 !x2 = 
-    unsafeIOToST c
+forwardSearch2 !vec !start !end !x1 !x2 =
+    liftM fromEnum $! unsafeIOToST c
   where
     c32 = c_forwardSearch32_2 (M.toPtr vec) (fI start) (fI end) (fI x1) (fI x2)
     c64 = c_forwardSearch64_2 (M.toPtr vec) (fI start) (fI end) (fI x1) (fI x2)
@@ -121,8 +122,8 @@ forwardSearch2 !vec !start !end !x1 !x2 =
 
 {-# INLINE forwardSearch3 #-}
 forwardSearch3 :: IntArray s -> Int -> Int -> Int -> Int -> Int -> ST s Int
-forwardSearch3 !vec !start !end !x1 !x2 !x3 = 
-    unsafeIOToST c
+forwardSearch3 !vec !start !end !x1 !x2 !x3 =
+    liftM fromEnum $! unsafeIOToST c
   where
     c32 = c_forwardSearch32_3 (M.toPtr vec) (fI start) (fI end)
                               (fI x1) (fI x2) (fI x3)
@@ -134,7 +135,7 @@ forwardSearch3 !vec !start !end !x1 !x2 !x3 =
 {-# INLINE lineSearch #-}
 lineSearch :: IntArray s -> Int -> Int -> ST s Int
 lineSearch !vec !start !value =
-    unsafeIOToST c
+    liftM fromEnum $! unsafeIOToST c
   where
     c32 = c_lineSearch32 (M.toPtr vec) (fI start) (fI value)
     c64 = c_lineSearch64 (M.toPtr vec) (fI start) (fI value)
@@ -143,7 +144,7 @@ lineSearch !vec !start !value =
 {-# INLINE lineSearch2 #-}
 lineSearch2 :: IntArray s -> Int -> Int -> Int -> ST s Int
 lineSearch2 !vec !start !x1 !x2 =
-    unsafeIOToST c
+    liftM fromEnum $! unsafeIOToST c
   where
     c32 = c_lineSearch32_2 (M.toPtr vec) (fI start) (fI x1) (fI x2)
     c64 = c_lineSearch64_2 (M.toPtr vec) (fI start) (fI x1) (fI x2)
@@ -152,7 +153,7 @@ lineSearch2 !vec !start !x1 !x2 =
 {-# INLINE lineSearch3 #-}
 lineSearch3 :: IntArray s -> Int -> Int -> Int -> Int -> ST s Int
 lineSearch3 !vec !start !x1 !x2 !x3 =
-    unsafeIOToST c
+    liftM fromEnum $! unsafeIOToST c
   where
     c32 = c_lineSearch32_3 (M.toPtr vec) (fI start) (fI x1) (fI x2) (fI x3)
     c64 = c_lineSearch64_3 (M.toPtr vec) (fI start) (fI x1) (fI x2) (fI x3)
@@ -200,7 +201,7 @@ bl_abs# !x# = word2Int# r#
     !m# = sign# x#
     !r# = (int2Word# (m# +# x#)) `xor#` int2Word# m#
 
-    
+
 {-# INLINE mask# #-}
 -- | Returns 0xfff..fff (aka -1) if a# == b#, 0 otherwise.
 mask# :: Int# -> Int# -> Int#
@@ -356,7 +357,7 @@ lineResult# bitmask# (I# start#) = I# (word2Int# rv#)
     !nmm# = not# mm#
     !rv#  = mm# `or#` (nmm# `and#` (int2Word# (start# +# p#)))
 {-# INLINE lineResult# #-}
-    
+
 
 lineSearch :: IntArray s        -- ^ vector to search
            -> Int               -- ^ start index
@@ -538,27 +539,27 @@ lineSearch64_2 !vec !start !(I# v#) !(I# v2#) = do
                           `and#` int2Word# 0x2#)
 
     (I# x3#) <- M.readArray vec $! start + 2
-    let !p3# = p2# `or#` ((maskw# x3# v# `or#` maskw# x3# v2#) 
+    let !p3# = p2# `or#` ((maskw# x3# v# `or#` maskw# x3# v2#)
                           `and#` int2Word# 0x4#)
 
     (I# x4#) <- M.readArray vec $! start + 3
-    let !p4# = p3# `or#` ((maskw# x4# v# `or#` maskw# x4# v2#) 
+    let !p4# = p3# `or#` ((maskw# x4# v# `or#` maskw# x4# v2#)
                           `and#` int2Word# 0x8#)
 
     (I# x5#) <- M.readArray vec $! start + 4
-    let !p5# = p4# `or#` ((maskw# x5# v# `or#` maskw# x5# v2#) 
+    let !p5# = p4# `or#` ((maskw# x5# v# `or#` maskw# x5# v2#)
                           `and#` int2Word# 0x10#)
 
     (I# x6#) <- M.readArray vec $! start + 5
-    let !p6# = p5# `or#` ((maskw# x6# v# `or#` maskw# x6# v2#) 
+    let !p6# = p5# `or#` ((maskw# x6# v# `or#` maskw# x6# v2#)
                           `and#` int2Word# 0x20#)
 
     (I# x7#) <- M.readArray vec $! start + 6
-    let !p7# = p6# `or#` ((maskw# x7# v# `or#` maskw# x7# v2#) 
+    let !p7# = p6# `or#` ((maskw# x7# v# `or#` maskw# x7# v2#)
                           `and#` int2Word# 0x40#)
 
     (I# x8#) <- M.readArray vec $! start + 7
-    let !p8# = p7# `or#` ((maskw# x8# v# `or#` maskw# x8# v2#) 
+    let !p8# = p7# `or#` ((maskw# x8# v# `or#` maskw# x8# v2#)
                           `and#` int2Word# 0x80#)
 
     return $! lineResult# p8# start
@@ -576,63 +577,63 @@ lineSearch32_2 !vec !start !(I# v#) !(I# v2#) = do
     let !p1# = (maskw# x1# v# `or#` maskw# x1# v2#) `and#` int2Word# 0x1#
 
     (I# x2#) <- M.readArray vec $! start + 1
-    let !p2# = p1# `or#` ((maskw# x2# v# `or#` maskw# x2# v2#) 
+    let !p2# = p1# `or#` ((maskw# x2# v# `or#` maskw# x2# v2#)
                           `and#` int2Word# 0x2#)
 
     (I# x3#) <- M.readArray vec $! start + 2
-    let !p3# = p2# `or#` ((maskw# x3# v# `or#` maskw# x3# v2#) 
+    let !p3# = p2# `or#` ((maskw# x3# v# `or#` maskw# x3# v2#)
                           `and#` int2Word# 0x4#)
 
     (I# x4#) <- M.readArray vec $! start + 3
-    let !p4# = p3# `or#` ((maskw# x4# v# `or#` maskw# x4# v2#) 
+    let !p4# = p3# `or#` ((maskw# x4# v# `or#` maskw# x4# v2#)
                           `and#` int2Word# 0x8#)
 
     (I# x5#) <- M.readArray vec $! start + 4
-    let !p5# = p4# `or#` ((maskw# x5# v# `or#` maskw# x5# v2#) 
+    let !p5# = p4# `or#` ((maskw# x5# v# `or#` maskw# x5# v2#)
                           `and#` int2Word# 0x10#)
 
     (I# x6#) <- M.readArray vec $! start + 5
-    let !p6# = p5# `or#` ((maskw# x6# v# `or#` maskw# x6# v2#) 
+    let !p6# = p5# `or#` ((maskw# x6# v# `or#` maskw# x6# v2#)
                           `and#` int2Word# 0x20#)
 
     (I# x7#) <- M.readArray vec $! start + 6
-    let !p7# = p6# `or#` ((maskw# x7# v# `or#` maskw# x7# v2#) 
+    let !p7# = p6# `or#` ((maskw# x7# v# `or#` maskw# x7# v2#)
                           `and#` int2Word# 0x40#)
 
     (I# x8#) <- M.readArray vec $! start + 7
-    let !p8# = p7# `or#` ((maskw# x8# v# `or#` maskw# x8# v2#) 
+    let !p8# = p7# `or#` ((maskw# x8# v# `or#` maskw# x8# v2#)
                           `and#` int2Word# 0x80#)
 
     (I# x9#) <- M.readArray vec $! start + 8
-    let !p9# = p8# `or#` ((maskw# x9# v# `or#` maskw# x9# v2#) 
+    let !p9# = p8# `or#` ((maskw# x9# v# `or#` maskw# x9# v2#)
                           `and#` int2Word# 0x100#)
 
     (I# x10#) <- M.readArray vec $! start + 9
-    let !p10# = p9# `or#` ((maskw# x10# v# `or#` maskw# x10# v2#) 
+    let !p10# = p9# `or#` ((maskw# x10# v# `or#` maskw# x10# v2#)
                            `and#` int2Word# 0x200#)
 
     (I# x11#) <- M.readArray vec $! start + 10
-    let !p11# = p10# `or#` ((maskw# x11# v# `or#` maskw# x11# v2#) 
+    let !p11# = p10# `or#` ((maskw# x11# v# `or#` maskw# x11# v2#)
                             `and#` int2Word# 0x400#)
 
     (I# x12#) <- M.readArray vec $! start + 11
-    let !p12# = p11# `or#` ((maskw# x12# v# `or#` maskw# x12# v2#) 
+    let !p12# = p11# `or#` ((maskw# x12# v# `or#` maskw# x12# v2#)
                             `and#` int2Word# 0x800#)
 
     (I# x13#) <- M.readArray vec $! start + 12
-    let !p13# = p12# `or#` ((maskw# x13# v# `or#` maskw# x13# v2#) 
+    let !p13# = p12# `or#` ((maskw# x13# v# `or#` maskw# x13# v2#)
                             `and#` int2Word# 0x1000#)
 
     (I# x14#) <- M.readArray vec $! start + 13
-    let !p14# = p13# `or#` ((maskw# x14# v# `or#` maskw# x14# v2#) 
+    let !p14# = p13# `or#` ((maskw# x14# v# `or#` maskw# x14# v2#)
                             `and#` int2Word# 0x2000#)
 
     (I# x15#) <- M.readArray vec $! start + 14
-    let !p15# = p14# `or#` ((maskw# x15# v# `or#` maskw# x15# v2#) 
+    let !p15# = p14# `or#` ((maskw# x15# v# `or#` maskw# x15# v2#)
                             `and#` int2Word# 0x4000#)
 
     (I# x16#) <- M.readArray vec $! start + 15
-    let !p16# = p15# `or#` ((maskw# x16# v# `or#` maskw# x16# v2#) 
+    let !p16# = p15# `or#` ((maskw# x16# v# `or#` maskw# x16# v2#)
                             `and#` int2Word# 0x8000#)
 
     return $! lineResult# p16# start
@@ -726,32 +727,32 @@ lineSearch64_3 !vec !start !(I# v#) !(I# v2#) !(I# v3#) = do
 
     (I# x3#) <- M.readArray vec $! start + 2
     let !p3# = p2# `or#`
-               ((maskw# x3# v# `or#` maskw# x3# v2# `or#` maskw# x3# v3#) 
+               ((maskw# x3# v# `or#` maskw# x3# v2# `or#` maskw# x3# v3#)
                 `and#` int2Word# 0x4#)
 
     (I# x4#) <- M.readArray vec $! start + 3
     let !p4# = p3# `or#`
-               ((maskw# x4# v# `or#` maskw# x4# v2# `or#` maskw# x4# v3#) 
+               ((maskw# x4# v# `or#` maskw# x4# v2# `or#` maskw# x4# v3#)
                 `and#` int2Word# 0x8#)
 
     (I# x5#) <- M.readArray vec $! start + 4
     let !p5# = p4# `or#`
-               ((maskw# x5# v# `or#` maskw# x5# v2# `or#` maskw# x5# v3#) 
+               ((maskw# x5# v# `or#` maskw# x5# v2# `or#` maskw# x5# v3#)
                 `and#` int2Word# 0x10#)
 
     (I# x6#) <- M.readArray vec $! start + 5
     let !p6# = p5# `or#`
-               ((maskw# x6# v# `or#` maskw# x6# v2# `or#` maskw# x6# v3#) 
+               ((maskw# x6# v# `or#` maskw# x6# v2# `or#` maskw# x6# v3#)
                 `and#` int2Word# 0x20#)
 
     (I# x7#) <- M.readArray vec $! start + 6
     let !p7# = p6# `or#`
-               ((maskw# x7# v# `or#` maskw# x7# v2# `or#` maskw# x7# v3#) 
+               ((maskw# x7# v# `or#` maskw# x7# v2# `or#` maskw# x7# v3#)
                 `and#` int2Word# 0x40#)
 
     (I# x8#) <- M.readArray vec $! start + 7
     let !p8# = p7# `or#`
-               ((maskw# x8# v# `or#` maskw# x8# v2# `or#` maskw# x8# v3#) 
+               ((maskw# x8# v# `or#` maskw# x8# v2# `or#` maskw# x8# v3#)
                 `and#` int2Word# 0x80#)
 
     return $! lineResult# p8# start
@@ -772,77 +773,77 @@ lineSearch32_3 !vec !start !(I# v#) !(I# v2#) !(I# v3#) = do
 
     (I# x2#) <- M.readArray vec $! start + 1
     let !p2# = p1# `or#`
-               ((maskw# x2# v# `or#` maskw# x2# v2# `or#` maskw# x2# v3#) 
+               ((maskw# x2# v# `or#` maskw# x2# v2# `or#` maskw# x2# v3#)
                 `and#` int2Word# 0x2#)
 
     (I# x3#) <- M.readArray vec $! start + 2
     let !p3# = p2# `or#`
-               ((maskw# x3# v# `or#` maskw# x3# v2# `or#` maskw# x3# v3#) 
+               ((maskw# x3# v# `or#` maskw# x3# v2# `or#` maskw# x3# v3#)
                 `and#` int2Word# 0x4#)
 
     (I# x4#) <- M.readArray vec $! start + 3
     let !p4# = p3# `or#`
-               ((maskw# x4# v# `or#` maskw# x4# v2# `or#` maskw# x4# v3#) 
+               ((maskw# x4# v# `or#` maskw# x4# v2# `or#` maskw# x4# v3#)
                 `and#` int2Word# 0x8#)
 
     (I# x5#) <- M.readArray vec $! start + 4
     let !p5# = p4# `or#`
-               ((maskw# x5# v# `or#` maskw# x5# v2# `or#` maskw# x5# v3#) 
+               ((maskw# x5# v# `or#` maskw# x5# v2# `or#` maskw# x5# v3#)
                 `and#` int2Word# 0x10#)
 
     (I# x6#) <- M.readArray vec $! start + 5
     let !p6# = p5# `or#`
-               ((maskw# x6# v# `or#` maskw# x6# v2# `or#` maskw# x6# v3#) 
+               ((maskw# x6# v# `or#` maskw# x6# v2# `or#` maskw# x6# v3#)
                 `and#` int2Word# 0x20#)
 
     (I# x7#) <- M.readArray vec $! start + 6
     let !p7# = p6# `or#`
-               ((maskw# x7# v# `or#` maskw# x7# v2# `or#` maskw# x7# v3#) 
+               ((maskw# x7# v# `or#` maskw# x7# v2# `or#` maskw# x7# v3#)
                 `and#` int2Word# 0x40#)
 
     (I# x8#) <- M.readArray vec $! start + 7
     let !p8# = p7# `or#`
-               ((maskw# x8# v# `or#` maskw# x8# v2# `or#` maskw# x8# v3#) 
+               ((maskw# x8# v# `or#` maskw# x8# v2# `or#` maskw# x8# v3#)
                 `and#` int2Word# 0x80#)
 
     (I# x9#) <- M.readArray vec $! start + 8
     let !p9# = p8# `or#`
-               ((maskw# x9# v# `or#` maskw# x9# v2# `or#` maskw# x9# v3#) 
+               ((maskw# x9# v# `or#` maskw# x9# v2# `or#` maskw# x9# v3#)
                 `and#` int2Word# 0x100#)
 
     (I# x10#) <- M.readArray vec $! start + 9
     let !p10# = p9# `or#`
-                ((maskw# x10# v# `or#` maskw# x10# v2# `or#` maskw# x10# v3#) 
+                ((maskw# x10# v# `or#` maskw# x10# v2# `or#` maskw# x10# v3#)
                  `and#` int2Word# 0x200#)
 
     (I# x11#) <- M.readArray vec $! start + 10
     let !p11# = p10# `or#`
-                ((maskw# x11# v# `or#` maskw# x11# v2# `or#` maskw# x11# v3#) 
+                ((maskw# x11# v# `or#` maskw# x11# v2# `or#` maskw# x11# v3#)
                  `and#` int2Word# 0x400#)
 
     (I# x12#) <- M.readArray vec $! start + 11
     let !p12# = p11# `or#`
-                ((maskw# x12# v# `or#` maskw# x12# v2# `or#` maskw# x12# v3#) 
+                ((maskw# x12# v# `or#` maskw# x12# v2# `or#` maskw# x12# v3#)
                  `and#` int2Word# 0x800#)
 
     (I# x13#) <- M.readArray vec $! start + 12
     let !p13# = p12# `or#`
-                ((maskw# x13# v# `or#` maskw# x13# v2# `or#` maskw# x13# v3#) 
+                ((maskw# x13# v# `or#` maskw# x13# v2# `or#` maskw# x13# v3#)
                  `and#` int2Word# 0x1000#)
 
     (I# x14#) <- M.readArray vec $! start + 13
     let !p14# = p13# `or#`
-                ((maskw# x14# v# `or#` maskw# x14# v2# `or#` maskw# x14# v3#) 
+                ((maskw# x14# v# `or#` maskw# x14# v2# `or#` maskw# x14# v3#)
                  `and#` int2Word# 0x2000#)
 
     (I# x15#) <- M.readArray vec $! start + 14
     let !p15# = p14# `or#`
-                ((maskw# x15# v# `or#` maskw# x15# v2# `or#` maskw# x15# v3#) 
+                ((maskw# x15# v# `or#` maskw# x15# v2# `or#` maskw# x15# v3#)
                  `and#` int2Word# 0x4000#)
 
     (I# x16#) <- M.readArray vec $! start + 15
     let !p16# = p15# `or#`
-                ((maskw# x16# v# `or#` maskw# x16# v2# `or#` maskw# x16# v3#) 
+                ((maskw# x16# v# `or#` maskw# x16# v2# `or#` maskw# x16# v3#)
                  `and#` int2Word# 0x8000#)
 
     return $! lineResult# p16# start

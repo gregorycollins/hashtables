@@ -1,5 +1,6 @@
 Name:                hashtable-benchmark
-Version:             0.1
+Version:             0.2
+Copyright:           (c) 2011-2012, Google, Inc.
 Synopsis:            Benchmarks for hashtables
 License:             BSD3
 License-file:        LICENSE
@@ -18,8 +19,8 @@ Executable hashtable-benchmark
 
   build-depends:     base                 == 4.*,
                      base16-bytestring    == 0.1.*,
-                     bytestring           == 0.9.*,
-                     containers           == 0.4.*,
+                     bytestring           >= 0.9     && <0.11,
+                     containers           >= 0.4     && <0.6,
                      criterion            >= 0.5     && <0.7,
                      csv                  == 0.1.*,
                      deepseq              >= 1.1     && <1.4,

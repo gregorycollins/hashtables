@@ -1,8 +1,8 @@
 Name:                hashtables-test
-Version:             0.1
+Version:             0.2
 Author:              Gregory Collins
 Maintainer:          greg@gregorycollins.net
-Copyright:           (c) 2011, Google, Inc.
+Copyright:           (c) 2011-2012, Google, Inc.
 Category:            Data
 Build-type:          Simple
 Cabal-version:       >= 1.8

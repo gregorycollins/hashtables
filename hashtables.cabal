@@ -1,12 +1,12 @@
 Name:                hashtables
-Version:             1.0.1.6
+Version:             1.0.1.7
 Synopsis:            Mutable hash tables in the ST monad
 Homepage:            http://github.com/gregorycollins/hashtables
 License:             BSD3
 License-file:        LICENSE
 Author:              Gregory Collins
 Maintainer:          greg@gregorycollins.net
-Copyright:           (c) 2011, Google, Inc.
+Copyright:           (c) 2011-2012, Google, Inc.
 Category:            Data
 Build-type:          Simple
 Cabal-version:       >= 1.8

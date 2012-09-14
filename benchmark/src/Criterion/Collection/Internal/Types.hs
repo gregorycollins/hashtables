@@ -60,7 +60,7 @@ type WorkloadGenerator op = Int -> WorkloadMonad (Workload op)
 
 
 ------------------------------------------------------------------------------
-data (NFData op) => Workload op = Workload {
+data Workload op = Workload {
       -- | \"Setup work\" is work that you do to prepopulate a data structure
       -- to a certain size before testing begins.
       setupWork             :: !(Vector op)

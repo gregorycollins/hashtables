@@ -59,7 +59,7 @@ instance Show SampleData where
                                   ++ ">"
 
 ------------------------------------------------------------------------------
-data (NFData op) => Benchmark op = Benchmark {
+data Benchmark op = Benchmark {
       benchmarkName     :: String
     , dataStructures    :: [(String, DataStructure op)]
     , inputSizes        :: [Int]

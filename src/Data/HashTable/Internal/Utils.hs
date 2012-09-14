@@ -6,6 +6,7 @@ module Data.HashTable.Internal.Utils
   ( whichBucket
   , nextBestPrime
   , bumpSize
+  , shiftL
   , shiftRL
   , iShiftL
   , iShiftRL
@@ -20,12 +21,13 @@ module Data.HashTable.Internal.Utils
   , forceSameType
   ) where
 
-import           Data.Bits
+import           Data.Bits hiding (shiftL)
 import           Data.Vector (Vector)
 import qualified Data.Vector as V
 #if __GLASGOW_HASKELL__ >= 503
 import           GHC.Exts
 #else
+import qualified Data.Bits
 import           Data.Word
 #endif
 
@@ -244,6 +246,7 @@ bumpSize !s = nextBestPrime s'
 
 
 ------------------------------------------------------------------------------
+shiftL :: Word -> Int -> Word
 shiftRL :: Word -> Int -> Word
 iShiftL  :: Int -> Int -> Int
 iShiftRL  :: Int -> Int -> Int
@@ -251,6 +254,10 @@ iShiftRL  :: Int -> Int -> Int
 {--------------------------------------------------------------------
   GHC: use unboxing to get @shiftRL@ inlined.
 --------------------------------------------------------------------}
+{-# INLINE shiftL #-}
+shiftL (W# x) (I# i)
+  = W# (shiftL# x i)
+
 {-# INLINE shiftRL #-}
 shiftRL (W# x) (I# i)
   = W# (shiftRL# x i)
@@ -264,9 +271,10 @@ iShiftRL (I# x) (I# i)
   = I# (iShiftRL# x i)
 
 #else
+shiftL x i    = Data.Bits.shiftL x i
 shiftRL x i   = shiftR x i
 iShiftL x i   = shiftL x i
-iShiftRL x i   = shiftRL x i
+iShiftRL x i  = shiftRL x i
 #endif
 
 

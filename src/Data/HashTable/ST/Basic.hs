@@ -484,7 +484,7 @@ delete' (HashTable sz loadRef delRef hashes keys values) clearOut k h = do
             -- because the table isn't full, we know that there must be either
             -- an empty or a deleted marker somewhere in the table. Assert this
             -- here.
-            assert (idx > 0) $ return ()
+            assert (idx >= 0) $ return ()
             h0 <- U.readArray hashes idx
             debug $ "h0 was " ++ show h0
 
