@@ -47,7 +47,7 @@ module Data.HashTable.Class
 
 import           Control.Monad.ST
 import           Data.Hashable
-import           Prelude hiding (mapM_)
+import           Prelude          hiding (mapM_)
 
 -- | A typeclass for hash tables in the 'ST' monad. The operations on these
 -- hash tables are typically both key- and value-strict.
@@ -90,7 +90,7 @@ class HashTable h where
 -- | Create a hash table from a list of key-value pairs. /O(n)/.
 fromList :: (HashTable h, Eq k, Hashable k) => [(k,v)] -> ST s (h s k v)
 fromList l = do
-    ht <- newSized (length l)
+    ht <- new
     go ht l
 
   where
