@@ -48,7 +48,7 @@ newArray :: Int -> ST s (IntArray s)
 newArray n = do
     let !sz = n * wordSizeInBytes
     !arr <- A.newAlignedPinnedByteArray sz  cacheLineSize
-    A.memsetByteArray arr 0 0 sz
+    A.fillByteArray arr 0 sz 0
     return $! IA arr
 
 

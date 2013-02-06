@@ -35,7 +35,7 @@
 -- below, you can plug in any of @'BasicHashTable' k v@, @'CuckooHashTable' k
 -- v@, or @'LinearHashTable' k v@.
 --
-module Data.HashTable.IO 
+module Data.HashTable.IO
   ( BasicHashTable
   , CuckooHashTable
   , LinearHashTable
@@ -54,15 +54,16 @@ module Data.HashTable.IO
 
 
 ------------------------------------------------------------------------------
-import           Control.Monad.Primitive (PrimState)
-import           Control.Monad.ST
-import           Data.Hashable           (Hashable)
-import qualified Data.HashTable.Class    as C
-import           Prelude                 hiding (lookup, mapM_)
+import           Control.Monad.Primitive  (PrimState)
+import           Control.Monad.ST         (stToIO)
+import           Control.Monad.ST.Unsafe  (unsafeIOToST)
+import           Data.Hashable            (Hashable)
+import qualified Data.HashTable.Class     as C
+import           Prelude                  hiding (lookup, mapM_)
 
 ------------------------------------------------------------------------------
 import qualified Data.HashTable.ST.Basic  as B
-import qualified Data.HashTable.ST.Cuckoo  as Cu
+import qualified Data.HashTable.ST.Cuckoo as Cu
 import qualified Data.HashTable.ST.Linear as L
 
 
@@ -90,9 +91,6 @@ type IOHashTable tabletype k v = tabletype (PrimState IO) k v
 new :: C.HashTable h => IO (IOHashTable h k v)
 new = stToIO C.new
 {-# INLINE new #-}
-{-# SPECIALIZE INLINE new :: IO (BasicHashTable k v) #-}
-{-# SPECIALIZE INLINE new :: IO (LinearHashTable k v) #-}
-{-# SPECIALIZE INLINE new :: IO (CuckooHashTable k v) #-}
 
 ------------------------------------------------------------------------------
 -- | See the documentation for this function in
@@ -100,9 +98,6 @@ new = stToIO C.new
 newSized :: C.HashTable h => Int -> IO (IOHashTable h k v)
 newSized = stToIO . C.newSized
 {-# INLINE newSized #-}
-{-# SPECIALIZE INLINE newSized :: Int -> IO (BasicHashTable k v) #-}
-{-# SPECIALIZE INLINE newSized :: Int -> IO (LinearHashTable k v) #-}
-{-# SPECIALIZE INLINE newSized :: Int -> IO (CuckooHashTable k v) #-}
 
 
 ------------------------------------------------------------------------------
@@ -111,12 +106,6 @@ insert   :: (C.HashTable h, Eq k, Hashable k) =>
             IOHashTable h k v -> k -> v -> IO ()
 insert h k v = stToIO $ C.insert h k v
 {-# INLINE insert #-}
-{-# SPECIALIZE INLINE insert :: (Eq k, Hashable k) =>
-                         BasicHashTable  k v -> k -> v -> IO () #-}
-{-# SPECIALIZE INLINE insert :: (Eq k, Hashable k) =>
-                         LinearHashTable k v -> k -> v -> IO () #-}
-{-# SPECIALIZE INLINE insert :: (Eq k, Hashable k) =>
-                         CuckooHashTable k v -> k -> v -> IO () #-}
 
 
 ------------------------------------------------------------------------------
@@ -125,12 +114,6 @@ delete   :: (C.HashTable h, Eq k, Hashable k) =>
             IOHashTable h k v -> k -> IO ()
 delete h k = stToIO $ C.delete h k
 {-# INLINE delete #-}
-{-# SPECIALIZE INLINE delete :: (Eq k, Hashable k) =>
-                         BasicHashTable  k v -> k -> IO () #-}
-{-# SPECIALIZE INLINE delete :: (Eq k, Hashable k) =>
-                         LinearHashTable k v -> k -> IO () #-}
-{-# SPECIALIZE INLINE delete :: (Eq k, Hashable k) =>
-                         CuckooHashTable k v -> k -> IO () #-}
 
 
 ------------------------------------------------------------------------------
@@ -139,12 +122,6 @@ lookup   :: (C.HashTable h, Eq k, Hashable k) =>
             IOHashTable h k v -> k -> IO (Maybe v)
 lookup h k = stToIO $ C.lookup h k
 {-# INLINE lookup #-}
-{-# SPECIALIZE INLINE lookup :: (Eq k, Hashable k) =>
-                         BasicHashTable  k v -> k -> IO (Maybe v) #-}
-{-# SPECIALIZE INLINE lookup :: (Eq k, Hashable k) =>
-                         LinearHashTable k v -> k -> IO (Maybe v) #-}
-{-# SPECIALIZE INLINE lookup :: (Eq k, Hashable k) =>
-                         CuckooHashTable k v -> k -> IO (Maybe v) #-}
 
 
 ------------------------------------------------------------------------------
@@ -154,12 +131,6 @@ fromList :: (C.HashTable h, Eq k, Hashable k) =>
             [(k,v)] -> IO (IOHashTable h k v)
 fromList = stToIO . C.fromList
 {-# INLINE fromList #-}
-{-# SPECIALIZE INLINE fromList :: (Eq k, Hashable k) =>
-                           [(k,v)] -> IO (BasicHashTable  k v) #-}
-{-# SPECIALIZE INLINE fromList :: (Eq k, Hashable k) =>
-                           [(k,v)] -> IO (LinearHashTable k v) #-}
-{-# SPECIALIZE INLINE fromList :: (Eq k, Hashable k) =>
-                           [(k,v)] -> IO (CuckooHashTable k v) #-}
 
 
 ------------------------------------------------------------------------------
@@ -168,12 +139,6 @@ toList   :: (C.HashTable h, Eq k, Hashable k) =>
             IOHashTable h k v -> IO [(k,v)]
 toList = stToIO . C.toList
 {-# INLINE toList #-}
-{-# SPECIALIZE INLINE toList :: (Eq k, Hashable k) =>
-                         BasicHashTable  k v -> IO [(k,v)] #-}
-{-# SPECIALIZE INLINE toList :: (Eq k, Hashable k) =>
-                         LinearHashTable k v -> IO [(k,v)] #-}
-{-# SPECIALIZE INLINE toList :: (Eq k, Hashable k) =>
-                         CuckooHashTable k v -> IO [(k,v)] #-}
 
 
 ------------------------------------------------------------------------------
@@ -186,12 +151,6 @@ foldM f seed ht = stToIO $ C.foldM f' seed ht
   where
     f' !i !t = unsafeIOToST $ f i t
 {-# INLINE foldM #-}
-{-# SPECIALIZE INLINE foldM :: (a -> (k,v) -> IO a) -> a
-                            -> BasicHashTable  k v -> IO a #-}
-{-# SPECIALIZE INLINE foldM :: (a -> (k,v) -> IO a) -> a
-                            -> LinearHashTable k v -> IO a #-}
-{-# SPECIALIZE INLINE foldM :: (a -> (k,v) -> IO a) -> a
-                            -> CuckooHashTable k v -> IO a #-}
 
 
 ------------------------------------------------------------------------------
@@ -201,12 +160,6 @@ mapM_ f ht = stToIO $ C.mapM_ f' ht
   where
     f' = unsafeIOToST . f
 {-# INLINE mapM_ #-}
-{-# SPECIALIZE INLINE mapM_ :: ((k,v) -> IO a) -> BasicHashTable  k v
-                            -> IO () #-}
-{-# SPECIALIZE INLINE mapM_ :: ((k,v) -> IO a) -> LinearHashTable k v
-                            -> IO () #-}
-{-# SPECIALIZE INLINE mapM_ :: ((k,v) -> IO a) -> CuckooHashTable k v
-                            -> IO () #-}
 
 
 ------------------------------------------------------------------------------
