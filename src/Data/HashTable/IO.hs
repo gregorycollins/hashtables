@@ -46,6 +46,7 @@ module Data.HashTable.IO
   , delete
   , lookup
   , fromList
+  , fromListWithSizeHint
   , toList
   , mapM_
   , foldM
@@ -131,6 +132,15 @@ fromList :: (C.HashTable h, Eq k, Hashable k) =>
             [(k,v)] -> IO (IOHashTable h k v)
 fromList = stToIO . C.fromList
 {-# INLINE fromList #-}
+
+
+------------------------------------------------------------------------------
+-- | See the documentation for this function in
+-- "Data.HashTable.Class#v:fromListWithSizeHint".
+fromListWithSizeHint :: (C.HashTable h, Eq k, Hashable k) =>
+                        Int -> [(k,v)] -> IO (IOHashTable h k v)
+fromListWithSizeHint n = stToIO . C.fromListWithSizeHint n
+{-# INLINE fromListWithSizeHint #-}
 
 
 ------------------------------------------------------------------------------

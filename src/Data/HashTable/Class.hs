@@ -41,6 +41,7 @@
 module Data.HashTable.Class
   ( HashTable(..)
   , fromList
+  , fromListWithSizeHint
   , toList
   ) where
 
@@ -101,6 +102,26 @@ fromList l = do
             insert ht k v
             go' xs
 {-# INLINE fromList #-}
+
+
+------------------------------------------------------------------------------
+-- | Create a hash table from a list of key-value pairs, with a size hint. /O(n)/.
+fromListWithSizeHint :: (HashTable h, Eq k, Hashable k) =>
+                        Int
+                     -> [(k,v)]
+                     -> ST s (h s k v)
+fromListWithSizeHint n l = do
+    ht <- newSized n
+    go ht l
+
+  where
+    go ht = go'
+      where
+        go' [] = return ht
+        go' ((!k,!v):xs) = do
+            insert ht k v
+            go' xs
+{-# INLINE fromListWithSizeHint #-}
 
 
 ------------------------------------------------------------------------------
