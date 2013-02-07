@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns   #-}
+{-# LANGUAGE CPP            #-}
 {-# LANGUAGE EmptyDataDecls #-}
 
 -- | This module provides wrappers in 'IO' around the functions from
@@ -56,8 +57,12 @@ module Data.HashTable.IO
 
 ------------------------------------------------------------------------------
 import           Control.Monad.Primitive  (PrimState)
+#if MIN_VERSION_base(4,4,0)
 import           Control.Monad.ST         (stToIO)
 import           Control.Monad.ST.Unsafe  (unsafeIOToST)
+#else
+import Control.Monad.ST (stToIO, unsafeIOToST)
+#endif
 import           Data.Hashable            (Hashable)
 import qualified Data.HashTable.Class     as C
 import           Prelude                  hiding (lookup, mapM_)
