@@ -19,7 +19,13 @@ module Data.HashTable.Internal.CacheLine
   , maskw#
   ) where
 
+#if MIN_VERSION_base(4,4,0)
+import           Control.Monad.ST (ST)
+import           Control.Monad.ST.Unsafe
+#else
 import           Control.Monad.ST
+#endif
+
 import           Data.HashTable.Internal.IntArray (IntArray)
 import qualified Data.HashTable.Internal.IntArray as M
 

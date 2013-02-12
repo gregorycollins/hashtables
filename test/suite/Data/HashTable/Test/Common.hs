@@ -12,11 +12,15 @@ module Data.HashTable.Test.Common
 
 ------------------------------------------------------------------------------
 import           Control.Monad                        (foldM_, liftM, when)
+
+#if MIN_VERSION_base(4,4,0)
+import           Control.Monad.ST.Unsafe              (unsafeIOToST)
+#else
 import           Control.Monad.ST                     (unsafeIOToST)
+#endif
 import           Data.IORef
-import           Data.List                            hiding ( insert
-                                                             , delete
-                                                             , lookup )
+import           Data.List                            hiding (delete, insert,
+                                                       lookup)
 import           Data.Vector                          (Vector)
 import qualified Data.Vector                          as V
 import qualified Data.Vector.Mutable                  as MV
@@ -26,7 +30,7 @@ import           System.Timeout
 import           Test.Framework
 import           Test.Framework.Providers.HUnit
 import           Test.Framework.Providers.QuickCheck2
-import           Test.HUnit (assertFailure)
+import           Test.HUnit                           (assertFailure)
 import           Test.QuickCheck
 import           Test.QuickCheck.Monadic
 ------------------------------------------------------------------------------
@@ -35,8 +39,8 @@ import           Data.HashTable.IO
 
 #ifndef PORTABLE
 import           Control.Concurrent
-import           Foreign (malloc, free, poke, Ptr)
-import           Foreign.C.Types (CInt)
+import           Foreign                              (Ptr, free, malloc, poke)
+import           Foreign.C.Types                      (CInt (..))
 #endif
 
 ------------------------------------------------------------------------------
@@ -236,7 +240,7 @@ testDelete prefix dummyArg =
                        delete ht 2
                        delete ht 3
                        insert ht 2 2
-                       
+
               _  -> if i `mod` 2 == 0
                       then do
                         delete ht i

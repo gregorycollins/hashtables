@@ -69,8 +69,8 @@ Executable testsuite
                      primitive,
                      QuickCheck                 >= 2.3.0.2,
                      HUnit                      >= 1.2   && <2,
-                     test-framework             >= 0.3.1 && <0.7,
-                     test-framework-quickcheck2 >= 0.2.6 && <0.3,
+                     test-framework             >= 0.3.1 && <0.9,
+                     test-framework-quickcheck2 >= 0.2.6 && <0.4,
                      test-framework-hunit       >= 0.2.6 && <3,
                      vector                     >= 0.7
 

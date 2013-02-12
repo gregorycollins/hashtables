@@ -1,5 +1,5 @@
 Name:                hashtables
-Version:             1.0.1.8
+Version:             1.1.0.3
 Synopsis:            Mutable hash tables in the ST monad
 Homepage:            http://github.com/gregorycollins/hashtables
 License:             BSD3
@@ -171,7 +171,7 @@ Library
 
   Build-depends:     base      >= 4   && <5,
                      hashable  >= 1.1 && <2,
-                     primitive >= 0.4 && <0.6,
+                     primitive,
                      vector    >= 0.7 && <0.11
 
   if flag(portable)

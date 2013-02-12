@@ -4,22 +4,22 @@
 
 module Main (main) where
 
-import           Data.Bits
-import qualified Data.ByteString as B
-import           Data.ByteString (ByteString)
-import qualified Data.ByteString.Base16 as B16
-import           Data.Hashable
-import           Data.IORef
 import           Control.DeepSeq
 import           Control.Monad
 import           Control.Monad.ST
 import           Control.Monad.Trans
-import qualified Data.HashMap.Strict as UC
-import qualified Data.HashTable as H
-import qualified Data.Map as Map
-import qualified Data.HashTable.IO as IOH
 import           Data.Benchmarks.UnorderedCollections.Distributions
 import           Data.Benchmarks.UnorderedCollections.Types
+import           Data.Bits
+import           Data.ByteString                                    (ByteString)
+import qualified Data.ByteString                                    as B
+import qualified Data.ByteString.Base16                             as B16
+import           Data.Hashable
+import qualified Data.HashMap.Strict                                as UC
+import qualified Data.HashTable                                     as H
+import qualified Data.HashTable.IO                                  as IOH
+import           Data.IORef
+import qualified Data.Map                                           as Map
 import           System.Environment
 import           System.FilePath
 import           System.Random.MWC
@@ -118,9 +118,6 @@ mkByteString rng = do
     return $! B16.encode s
 
 
-instance NFData ByteString where
-    rnf s = rnf $! B.unpack s
-
 ------------------------------------------------------------------------------
 mkConsecutiveIntegers :: IORef Int -> GenIO -> IO Int
 mkConsecutiveIntegers ref _ = do
@@ -179,6 +176,8 @@ intStructures' = [ ("Data.Map"            , dataMap        )
                  ]
 
 
+------------------------------------------------------------------------------
+testSizes :: [Int]
 testSizes = [ 250
             , 500
             , 1000

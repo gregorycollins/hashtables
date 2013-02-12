@@ -41,13 +41,14 @@
 module Data.HashTable.Class
   ( HashTable(..)
   , fromList
+  , fromListWithSizeHint
   , toList
   ) where
 
 
 import           Control.Monad.ST
 import           Data.Hashable
-import           Prelude hiding (mapM_)
+import           Prelude          hiding (mapM_)
 
 -- | A typeclass for hash tables in the 'ST' monad. The operations on these
 -- hash tables are typically both key- and value-strict.
@@ -90,7 +91,7 @@ class HashTable h where
 -- | Create a hash table from a list of key-value pairs. /O(n)/.
 fromList :: (HashTable h, Eq k, Hashable k) => [(k,v)] -> ST s (h s k v)
 fromList l = do
-    ht <- newSized (length l)
+    ht <- new
     go ht l
 
   where
@@ -101,6 +102,26 @@ fromList l = do
             insert ht k v
             go' xs
 {-# INLINE fromList #-}
+
+
+------------------------------------------------------------------------------
+-- | Create a hash table from a list of key-value pairs, with a size hint. /O(n)/.
+fromListWithSizeHint :: (HashTable h, Eq k, Hashable k) =>
+                        Int
+                     -> [(k,v)]
+                     -> ST s (h s k v)
+fromListWithSizeHint n l = do
+    ht <- newSized n
+    go ht l
+
+  where
+    go ht = go'
+      where
+        go' [] = return ht
+        go' ((!k,!v):xs) = do
+            insert ht k v
+            go' xs
+{-# INLINE fromListWithSizeHint #-}
 
 
 ------------------------------------------------------------------------------

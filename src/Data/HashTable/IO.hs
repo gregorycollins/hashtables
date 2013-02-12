@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns   #-}
+{-# LANGUAGE CPP            #-}
 {-# LANGUAGE EmptyDataDecls #-}
 
 -- | This module provides wrappers in 'IO' around the functions from
@@ -35,7 +36,7 @@
 -- below, you can plug in any of @'BasicHashTable' k v@, @'CuckooHashTable' k
 -- v@, or @'LinearHashTable' k v@.
 --
-module Data.HashTable.IO 
+module Data.HashTable.IO
   ( BasicHashTable
   , CuckooHashTable
   , LinearHashTable
@@ -46,6 +47,7 @@ module Data.HashTable.IO
   , delete
   , lookup
   , fromList
+  , fromListWithSizeHint
   , toList
   , mapM_
   , foldM
@@ -54,15 +56,20 @@ module Data.HashTable.IO
 
 
 ------------------------------------------------------------------------------
-import           Control.Monad.Primitive (PrimState)
-import           Control.Monad.ST
-import           Data.Hashable           (Hashable)
-import qualified Data.HashTable.Class    as C
-import           Prelude                 hiding (lookup, mapM_)
+import           Control.Monad.Primitive  (PrimState)
+#if MIN_VERSION_base(4,4,0)
+import           Control.Monad.ST         (stToIO)
+import           Control.Monad.ST.Unsafe  (unsafeIOToST)
+#else
+import Control.Monad.ST (stToIO, unsafeIOToST)
+#endif
+import           Data.Hashable            (Hashable)
+import qualified Data.HashTable.Class     as C
+import           Prelude                  hiding (lookup, mapM_)
 
 ------------------------------------------------------------------------------
 import qualified Data.HashTable.ST.Basic  as B
-import qualified Data.HashTable.ST.Cuckoo  as Cu
+import qualified Data.HashTable.ST.Cuckoo as Cu
 import qualified Data.HashTable.ST.Linear as L
 
 
@@ -160,6 +167,15 @@ fromList = stToIO . C.fromList
                            [(k,v)] -> IO (LinearHashTable k v) #-}
 {-# SPECIALIZE INLINE fromList :: (Eq k, Hashable k) =>
                            [(k,v)] -> IO (CuckooHashTable k v) #-}
+
+
+------------------------------------------------------------------------------
+-- | See the documentation for this function in
+-- "Data.HashTable.Class#v:fromListWithSizeHint".
+fromListWithSizeHint :: (C.HashTable h, Eq k, Hashable k) =>
+                        Int -> [(k,v)] -> IO (IOHashTable h k v)
+fromListWithSizeHint n = stToIO . C.fromListWithSizeHint n
+{-# INLINE fromListWithSizeHint #-}
 
 
 ------------------------------------------------------------------------------
