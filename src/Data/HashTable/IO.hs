@@ -176,6 +176,12 @@ fromListWithSizeHint :: (C.HashTable h, Eq k, Hashable k) =>
                         Int -> [(k,v)] -> IO (IOHashTable h k v)
 fromListWithSizeHint n = stToIO . C.fromListWithSizeHint n
 {-# INLINE fromListWithSizeHint #-}
+{-# SPECIALIZE INLINE fromListWithSizeHint :: (Eq k, Hashable k) =>
+                           Int -> [(k,v)] -> IO (BasicHashTable  k v) #-}
+{-# SPECIALIZE INLINE fromListWithSizeHint :: (Eq k, Hashable k) =>
+                           Int -> [(k,v)] -> IO (LinearHashTable k v) #-}
+{-# SPECIALIZE INLINE fromListWithSizeHint :: (Eq k, Hashable k) =>
+                           Int -> [(k,v)] -> IO (CuckooHashTable k v) #-}
 
 
 ------------------------------------------------------------------------------
