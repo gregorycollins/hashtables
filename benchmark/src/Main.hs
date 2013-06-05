@@ -30,6 +30,11 @@ import           Criterion.Collection.Types
 
 
 ------------------------------------------------------------------------------
+#if !MIN_VERSION_bytestring(0,10,0)
+instance NFData ByteString
+#endif
+
+------------------------------------------------------------------------------
 dataMap :: (Ord k, Eq k) => DataStructure (Operation k)
 dataMap = setupData Map.empty f
   where
