@@ -1,3 +1,4 @@
+TAGS
 *~
 dist
 dist/**
@@ -7,3 +8,4 @@ test/.hpc
 test/.hpc/**
 test/*.tix
 *.prof
+benchmark/*.csv
