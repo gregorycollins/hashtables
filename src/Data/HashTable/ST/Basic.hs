@@ -18,49 +18,51 @@ you...
     with deleted markers and force the table to be completely rehashed fairly
     often.
 
-/Details:/
-
-Of the hash tables in this collection, this hash table has the best insert and
-lookup performance, with the following caveats.
+Of the hash tables in this collection, this hash table has the best lookup
+performance, while maintaining competitive insert performance.
 
 /Space overhead/
 
 This table is not especially memory-efficient; firstly, the table has a maximum
 load factor of 0.83 and will be resized if load exceeds this value. Secondly,
-to improve insert and lookup performance, we store the hash code for each key
-in the table.
+to improve insert and lookup performance, we store a 16-bit hash code for each
+key in the table.
 
-Each hash table entry requires three words, two for the pointers to the key and
-value and one for the hash code. We don't count key and value pointers as
-overhead, because they have to be there -- so the overhead for a full slot is
-one word -- but empty slots in the hash table count for a full three words of
-overhead. Define @m@ as the number of slots in the table and @n@ as the number
-of key value mappings. If the load factor is @k=n\/m@, the amount of space
-wasted is:
+Each hash table entry requires at least 2.25 words (on a 64-bit machine), two
+for the pointers to the key and value and one quarter word for the hash code.
+We don't count key and value pointers as overhead, because they have to be
+there -- so the overhead for a full slot is at least one quarter word -- but
+empty slots in the hash table count for a full 2.25 words of overhead. Define
+@m@ as the number of slots in the table, @n@ as the number of key value
+mappings, and @ws@ as the machine word size in /bytes/. If the load factor is
+@k=n\/m@, the amount of space /wasted/ per mapping in words is:
 
 @
-w(n) = 1*n + 3(m-n)
+w(n) = (m*(2*ws + 2) - n*(2*ws)) / ws
 @
 
 Since @m=n\/k@,
 
 @
-w(n) = n + 3(n\/k - n)
-= n (3\/k-2)
+w(n) = n\/k * (2*ws + 2) - n*(2*ws)
+     = (n * (2 + 2*ws*(1-k)) / k) / ws
 @
 
-Solving for @k=0.83@, the maximum load factor, gives a /minimum/ overhead of 2
-words per mapping. If @k=0.5@, under normal usage the /maximum/ overhead
-situation, then the overhead would be 4 words per mapping.
+Solving for @k=0.83@, the maximum load factor, gives a /minimum/ overhead of
+0.71 words per mapping on a 64-bit machine, or 1.01 words per mapping on a
+32-bit machine. If @k=0.5@, which should be under normal usage the /maximum/
+overhead situation, then the overhead would be 2.5 words per mapping on a
+64-bit machine, or 3.0 words per mapping on a 32-bit machine.
 
 /Space overhead: experimental results/
 
-In randomized testing (see @test\/compute-overhead\/ComputeOverhead.hs@ in the
-source distribution), mean overhead (that is, the number of words needed to
-store the key-value mapping over and above the two words necessary for the key
-and the value pointers) is approximately 2.29 machine words per key-value
-mapping with a standard deviation of about 0.44 words, and 3.14 words per
-mapping at the 95th percentile.
+In randomized testing on a 64-bit machine (see
+@test\/compute-overhead\/ComputeOverhead.hs@ in the source distribution), mean
+overhead (that is, the number of words needed to store the key-value mapping
+over and above the two words necessary for the key and the value pointers) is
+approximately 1.24 machine words per key-value mapping with a standard
+deviation of about 0.30 words, and 1.70 words per mapping at the 95th
+percentile.
 
 /Expensive resizes/
 
@@ -78,7 +80,6 @@ application, you should choose the included linear hash table instead.
     Searching. Addison-Wesley Publishing Company, 1973.
 -}
 
-
 module Data.HashTable.ST.Basic
   ( HashTable
   , new
@@ -93,22 +94,24 @@ module Data.HashTable.ST.Basic
 
 
 ------------------------------------------------------------------------------
-import           Control.Exception (assert)
-import           Control.Monad hiding (mapM_, foldM)
+import           Control.Exception                 (assert)
+import           Control.Monad                     hiding (foldM, mapM_)
 import           Control.Monad.ST
-import           Data.Hashable (Hashable)
-import qualified Data.Hashable as H
+import           Data.Bits
+import           Data.Hashable                     (Hashable)
+import qualified Data.Hashable                     as H
 import           Data.Maybe
 import           Data.Monoid
 import           Data.STRef
 import           GHC.Exts
-import           Prelude hiding (lookup, read, mapM_)
+import           Prelude                           hiding (lookup, mapM_, read)
 ------------------------------------------------------------------------------
+import qualified Data.HashTable.Class              as C
 import           Data.HashTable.Internal.Array
-import qualified Data.HashTable.Internal.IntArray as U
 import           Data.HashTable.Internal.CacheLine
+import           Data.HashTable.Internal.IntArray  (Elem)
+import qualified Data.HashTable.Internal.IntArray  as U
 import           Data.HashTable.Internal.Utils
-import qualified Data.HashTable.Class as C
 
 
 ------------------------------------------------------------------------------
@@ -148,7 +151,7 @@ instance Show (HashTable s k v) where
 -- | See the documentation for this function in
 -- "Data.HashTable.Class#v:new".
 new :: ST s (HashTable s k v)
-new = newSized 30
+new = newSized 1
 {-# INLINE new #-}
 
 
@@ -157,6 +160,7 @@ new = newSized 30
 -- "Data.HashTable.Class#v:newSized".
 newSized :: Int -> ST s (HashTable s k v)
 newSized n = do
+    debug $ "entering: newSized " ++ show n
     let m = nextBestPrime $ ceiling (fromIntegral n / maxLoad)
     ht <- newSizedReal m
     newRef ht
@@ -168,8 +172,8 @@ newSizedReal :: Int -> ST s (HashTable_ s k v)
 newSizedReal m = do
     -- make sure the hash array is a multiple of cache-line sized so we can
     -- always search a whole cache line at once
-    let m' = ((m + numWordsInCacheLine - 1) `div` numWordsInCacheLine)
-             * numWordsInCacheLine
+    let m' = ((m + numElemsInCacheLine - 1) `div` numElemsInCacheLine)
+             * numElemsInCacheLine
     h  <- U.newArray m'
     k  <- newArray m undefined
     v  <- newArray m undefined
@@ -186,6 +190,7 @@ delete :: (Hashable k, Eq k) =>
        -> k
        -> ST s ()
 delete htRef k = do
+    debug $ "entered: delete: hash=" ++ show h
     ht <- readRef htRef
     _  <- delete' ht True k h
     return ()
@@ -204,14 +209,22 @@ lookup htRef !k = do
   where
     lookup' (HashTable sz _ _ hashes keys values) = do
         let !b = whichBucket h sz
-        debug $ "lookup sz=" ++ show sz ++ " h=" ++ show h ++ " b=" ++ show b
+        debug $ "lookup h=" ++ show h ++ " sz=" ++ show sz ++ " b=" ++ show b
         go b 0 sz
 
       where
-        !h = hash k
+        !h  = hash k
+        !he = hashToElem h
 
         go !b !start !end = {-# SCC "lookup/go" #-} do
-            idx <- forwardSearch2 hashes b end h emptyMarker
+            debug $ concat [ "lookup'/go: "
+                           , show b
+                           , "/"
+                           , show start
+                           , "/"
+                           , show end
+                           ]
+            idx <- forwardSearch2 hashes b end he emptyMarker
             debug $ "forwardSearch2 returned " ++ show idx
             if (idx < 0 || idx < start || idx >= end)
                then return Nothing
@@ -220,7 +233,9 @@ lookup htRef !k = do
                  debug $ "h0 was " ++ show h0
 
                  if recordIsEmpty h0
-                   then return Nothing
+                   then do
+                       debug $ "record empty, returning Nothing"
+                       return Nothing
                    else do
                      k' <- readArray keys idx
                      if k == k'
@@ -228,9 +243,11 @@ lookup htRef !k = do
                          debug $ "value found at " ++ show idx
                          v <- readArray values idx
                          return $! Just v
-                       else if idx < b
-                              then go (idx + 1) (idx + 1) b
-                              else go (idx + 1) start end
+                       else do
+                         debug $ "value not found, recursing"
+                         if idx < b
+                           then go (idx + 1) (idx + 1) b
+                           else go (idx + 1) start end
 {-# INLINE lookup #-}
 
 
@@ -252,8 +269,14 @@ insert htRef !k !v = do
         debug "insert': calling delete'"
         b <- delete' ht False k h
 
-        debug $ "insert': writing h=" ++ show h ++ " b=" ++ show b
-        U.writeArray hashes b h
+        debug $ concat [ "insert': writing h="
+                       , show h
+                       , " he="
+                       , show he
+                       , " b="
+                       , show b
+                       ]
+        U.writeArray hashes b he
         writeArray keys b k
         writeArray values b v
 
@@ -261,6 +284,7 @@ insert htRef !k !v = do
 
       where
         !h     = hash k
+        !he    = hashToElem h
         hashes = _hashes ht
         keys   = _keys ht
         values = _values ht
@@ -316,12 +340,12 @@ computeOverhead htRef = readRef htRef >>= work
     work (HashTable sz' loadRef _ _ _ _) = do
         !ld <- U.readArray loadRef 0
         let k = fromIntegral ld / sz
-        return $ constOverhead / sz + overhead k
+        return $ constOverhead/sz + (2 + 2*ws*(1-k)) / (k * ws)
       where
+        ws = fromIntegral $! bitSize (0::Int) `div` 8
         sz = fromIntegral sz'
         -- Change these if you change the representation
         constOverhead = 14
-        overhead k = 3 / k - 2
 
 
 ------------------------------
@@ -345,11 +369,13 @@ insertRecord !sz !hashes !keys !values !h !key !value = do
     probe b
 
   where
+    he = hashToElem h
+
     probe !i = {-# SCC "insertRecord/probe" #-} do
         !idx <- forwardSearch2 hashes i sz emptyMarker deletedMarker
         debug $ "forwardSearch2 returned " ++ show idx
         assert (idx >= 0) $ do
-            U.writeArray hashes idx h
+            U.writeArray hashes idx he
             writeArray keys idx key
             writeArray values idx value
 
@@ -405,7 +431,7 @@ rehashAll (HashTable sz loadRef _ hashes keys values) sz' = do
 ------------------------------------------------------------------------------
 growTable :: Hashable k => HashTable_ s k v -> ST s (HashTable_ s k v)
 growTable ht@(HashTable sz _ _ _ _ _) = do
-    let !sz' = bumpSize sz
+    let !sz' = bumpSize maxLoad sz
     rehashAll ht sz'
 
 
@@ -435,9 +461,10 @@ delete' :: (Hashable k, Eq k) =>
         -> Int
         -> ST s Int
 delete' (HashTable sz loadRef delRef hashes keys values) clearOut k h = do
-    debug $ "delete': sz=" ++ show sz ++ " h=" ++ show h
-            ++ " b0=" ++ show b0
-    (found, slot) <- go mempty b0 False
+    debug $ "delete': h=" ++ show h ++ " he=" ++ show he
+            ++ " sz=" ++ show sz ++ " b0=" ++ show b0
+    pair@(found, slot) <- go mempty b0 False
+    debug $ "go returned " ++ show pair
 
     let !b' = _slot slot
 
@@ -448,6 +475,7 @@ delete' (HashTable sz loadRef delRef hashes keys values) clearOut k h = do
     return b'
 
   where
+    he = hashToElem h
     bump ref i = do
         !ld <- U.readArray ref 0
         U.writeArray ref 0 $! ld + i
@@ -466,9 +494,20 @@ delete' (HashTable sz loadRef delRef hashes keys values) clearOut k h = do
     --   * wrap  True if we've wrapped around, False otherwise
 
     go !fp !b !wrap = do
-        debug $ "go: fp=" ++ show fp ++ " b=" ++ show b
-                  ++ ", wrap=" ++ show wrap
-        !idx <- forwardSearch3 hashes b sz h emptyMarker deletedMarker
+        debug $ concat [ "go: fp="
+                       , show fp
+                       , " b="
+                       , show b
+                       , ", wrap="
+                       , show wrap
+                       , ", he="
+                       , show he
+                       , ", emptyMarker="
+                       , show emptyMarker
+                       , ", deletedMarker="
+                       , show deletedMarker ]
+
+        !idx <- forwardSearch3 hashes b sz he emptyMarker deletedMarker
         debug $ "forwardSearch3 returned " ++ show idx
 
         if wrap && idx >= b0
@@ -501,8 +540,9 @@ delete' (HashTable sz loadRef delRef hashes keys values) clearOut k h = do
                       debug $ "deleted, cont with pl=" ++ show pl
                       go pl (idx + 1) wrap'
                   else
-                    if h == h0
+                    if he == h0
                       then do
+                        debug $ "found he == h0 == " ++ show h0
                         k' <- readArray keys idx
                         if k == k'
                           then do
@@ -519,7 +559,7 @@ delete' (HashTable sz loadRef delRef hashes keys values) clearOut k h = do
                             -- new element here.
                             when (clearOut || not samePlace) $ do
                                 bump delRef 1
-                                U.writeArray hashes idx 1
+                                U.writeArray hashes idx deletedMarker
                                 writeArray keys idx undefined
                                 writeArray values idx undefined
                             return (True, fp `mappend` (Slot idx 0))
@@ -532,38 +572,44 @@ maxLoad = 0.82
 
 
 ------------------------------------------------------------------------------
-emptyMarker :: Int
+emptyMarker :: Elem
 emptyMarker = 0
 
 ------------------------------------------------------------------------------
-deletedMarker :: Int
+deletedMarker :: Elem
 deletedMarker = 1
 
 
 ------------------------------------------------------------------------------
 {-# INLINE recordIsEmpty #-}
-recordIsEmpty :: Int -> Bool
+recordIsEmpty :: Elem -> Bool
 recordIsEmpty = (== emptyMarker)
 
 
 ------------------------------------------------------------------------------
 {-# INLINE recordIsDeleted #-}
-recordIsDeleted :: Int -> Bool
+recordIsDeleted :: Elem -> Bool
 recordIsDeleted = (== deletedMarker)
 
 
 ------------------------------------------------------------------------------
 {-# INLINE hash #-}
 hash :: (Hashable k) => k -> Int
-hash k = out
-  where
-    !(I# h#) = H.hash k
+hash = H.hash
 
-    !m#  = maskw# h# 0# `or#` maskw# h# 1#
+
+------------------------------------------------------------------------------
+{-# INLINE hashToElem #-}
+hashToElem :: Int -> Elem
+hashToElem !h = out
+  where
+    !(I# lo#) = h .&. U.elemMask
+
+    !m#  = maskw# lo# 0# `or#` maskw# lo# 1#
     !nm# = not# m#
 
-    !r#  = ((int2Word# 2#) `and#` m#) `or#` (int2Word# h# `and#` nm#)
-    !out = I# (word2Int# r#)
+    !r#  = ((int2Word# 2#) `and#` m#) `or#` (int2Word# lo# `and#` nm#)
+    !out = U.primWordToElem r#
 
 
 ------------------------------------------------------------------------------

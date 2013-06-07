@@ -10,7 +10,7 @@ A hash table using the cuckoo strategy. (See
   * want the fastest possible inserts, and very fast lookups.
 
   * are conscious of memory usage; this table has less space overhead than
-    "Data.HashTable.ST.Basic", but more than "Data.HashTable.ST.Linear".
+    "Data.HashTable.ST.Basic" or "Data.HashTable.ST.Linear".
 
   * don't care that a table resize might pause for a long time to rehash all
     of the key-value mappings.
@@ -51,9 +51,8 @@ The implementation of cuckoo hash given here is almost as fast for lookups as
 the basic open-addressing hash table using linear probing, and on average is
 more space-efficient: in randomized testing on my 64-bit machine (see
 @test\/compute-overhead\/ComputeOverhead.hs@ in the source distribution), mean
-overhead is 1.71 machine words per key-value mapping, with a standard deviation
-of 0.30 words, and 2.46 words per mapping at the 95th percentile.
-
+overhead is 0.77 machine words per key-value mapping, with a standard deviation
+of 0.29 words, and 1.23 words per mapping at the 95th percentile.
 
 /References:/
 
@@ -75,21 +74,29 @@ module Data.HashTable.ST.Cuckoo
 
 
 ------------------------------------------------------------------------------
-import           Control.Monad hiding (foldM, mapM_)
+import           Control.Monad                                      hiding
+                                                                     (foldM,
+                                                                     mapM_)
 import           Control.Monad.ST
-import           Data.Hashable hiding (hash)
-import qualified Data.Hashable as H
+import           Data.Bits
+import           Data.Hashable                                      hiding
+                                                                     (hash)
+import qualified Data.Hashable                                      as H
 import           Data.Int
 import           Data.Maybe
 import           Data.Primitive.Array
 import           Data.STRef
 import           GHC.Exts
-import           Prelude hiding ( lookup, read, mapM_ )
+import           Prelude                                            hiding
+                                                                     (lookup,
+                                                                     mapM_,
+                                                                     read)
 ------------------------------------------------------------------------------
-import qualified Data.HashTable.Class                 as C
-import           Data.HashTable.Internal.CheapPseudoRandomBitStream
+import qualified Data.HashTable.Class                               as C
 import           Data.HashTable.Internal.CacheLine
-import qualified Data.HashTable.Internal.IntArray     as U
+import           Data.HashTable.Internal.CheapPseudoRandomBitStream
+import           Data.HashTable.Internal.IntArray                   (Elem)
+import qualified Data.HashTable.Internal.IntArray                   as U
 import           Data.HashTable.Internal.Utils
 
 #ifdef DEBUG
@@ -102,12 +109,12 @@ import           System.IO
 newtype HashTable s k v = HT (STRef s (HashTable_ s k v))
 
 data HashTable_ s k v = HashTable
-    { _size    :: {-# UNPACK #-} !Int     -- ^ in buckets, total size is
-                                          -- numWordsInCacheLine * _size
-    , _rng     :: {-# UNPACK #-} !(BitStream s)
-    , _hashes  :: {-# UNPACK #-} !(U.IntArray s)
-    , _keys    :: {-# UNPACK #-} !(MutableArray s k)
-    , _values  :: {-# UNPACK #-} !(MutableArray s v)
+    { _size        :: {-# UNPACK #-} !Int     -- ^ in buckets, total size is
+                                              --   numElemsInCacheLine * _size
+    , _rng         :: {-# UNPACK #-} !(BitStream s)
+    , _hashes      :: {-# UNPACK #-} !(U.IntArray s)
+    , _keys        :: {-# UNPACK #-} !(MutableArray s k)
+    , _values      :: {-# UNPACK #-} !(MutableArray s v)
     , _maxAttempts :: {-# UNPACK #-} !Int
     }
 
@@ -142,7 +149,7 @@ new = newSizedReal 2 >>= newRef
 -- "Data.HashTable.Class#v:newSized".
 newSized :: Int -> ST s (HashTable s k v)
 newSized n = do
-    let n' = (n + numWordsInCacheLine - 1) `div` numWordsInCacheLine
+    let n' = (n + numElemsInCacheLine - 1) `div` numElemsInCacheLine
     let k = nextBestPrime $ ceiling $ fromIntegral n' / maxLoad
     newSizedReal k >>= newRef
 {-# INLINE newSized #-}
@@ -164,14 +171,16 @@ computeOverhead htRef = readRef htRef >>= work
     work (HashTable sz _ _ _ _ _) = do
         nFilled <- foldM f 0 htRef
 
-        let oh = totSz                  -- one word per element in hashes
-               + 2 * (totSz - nFilled)  -- two words per non-filled entry
-               + 12                     -- fixed overhead
+        let oh = (totSz `div` hashCodesPerWord)  -- one half or quarter word
+                                                 -- per element in hashes
+               + 2 * (totSz - nFilled)           -- two words per non-filled entry
+               + 12                              -- fixed overhead
 
         return $! fromIntegral (oh::Int) / fromIntegral nFilled
 
       where
-        totSz = numWordsInCacheLine * sz
+        hashCodesPerWord = (bitSize (0 :: Int)) `div` 16
+        totSz = numElemsInCacheLine * sz
 
         f !a _ = return $! a+1
 
@@ -218,14 +227,14 @@ lookup' :: (Eq k, Hashable k) =>
 lookup' (HashTable sz _ hashes keys values _) !k = do
     -- Unlike the write case, prefetch doesn't seem to help here for lookup.
     -- prefetchRead hashes b2
-    idx1 <- searchOne keys hashes k b1 h1
+    idx1 <- searchOne keys hashes k b1 he1
 
     if idx1 >= 0
       then do
         v <- readArray values idx1
         return $! Just v
       else do
-        idx2 <- searchOne keys hashes k b2 h2
+        idx2 <- searchOne keys hashes k b2 he2
         if idx2 >= 0
           then do
             v <- readArray values idx2
@@ -236,6 +245,9 @@ lookup' (HashTable sz _ hashes keys values _) !k = do
   where
     h1 = hash1 k
     h2 = hash2 k
+
+    he1 = hashToElem h1
+    he2 = hashToElem h2
 
     b1 = whichLine h1 sz
     b2 = whichLine h2 sz
@@ -248,12 +260,12 @@ searchOne :: (Eq k) =>
           -> U.IntArray s
           -> k
           -> Int
-          -> Int
+          -> Elem
           -> ST s Int
-searchOne !keys !hashes !k = go
+searchOne !keys !hashes !k !b0 !h = go b0
   where
-    go !b !h = do
-        debug $ "searchOne: go " ++ show b ++ " " ++ show h
+    go !b = do
+        debug $ "searchOne: go/" ++ show b ++ "/" ++ show h
         idx <- cacheLineSearch hashes b h
         debug $ "searchOne: cacheLineSearch returned " ++ show idx
 
@@ -267,7 +279,7 @@ searchOne !keys !hashes !k = go
                   let !idx' = idx + 1
                   if isCacheLineAligned idx'
                     then return (-1)
-                    else go idx' h
+                    else go idx'
 {-# INLINE searchOne #-}
 
 
@@ -290,7 +302,7 @@ foldMWork :: (a -> (k,v) -> ST s a)
           -> ST s a
 foldMWork f seed0 (HashTable sz _ hashes keys values _) = go 0 seed0
   where
-    totSz = numWordsInCacheLine * sz
+    totSz = numElemsInCacheLine * sz
 
     go !i !seed | i >= totSz = return seed
                 | otherwise  = do
@@ -323,7 +335,7 @@ mapMWork :: ((k,v) -> ST s a)
          -> ST s ()
 mapMWork f (HashTable sz _ hashes keys values _) = go 0
   where
-    totSz = numWordsInCacheLine * sz
+    totSz = numElemsInCacheLine * sz
 
     go !i | i >= totSz = return ()
           | otherwise  = do
@@ -347,7 +359,7 @@ mapMWork f (HashTable sz _ hashes keys values _) = go 0
 ------------------------------------------------------------------------------
 newSizedReal :: Int -> ST s (HashTable_ s k v)
 newSizedReal nbuckets = do
-    let !ntotal   = nbuckets * numWordsInCacheLine
+    let !ntotal   = nbuckets * numElemsInCacheLine
     let !maxAttempts = 12 + (log2 $ toEnum nbuckets)
 
     debug $ "creating cuckoo hash table with " ++
@@ -421,7 +433,7 @@ updateOrFail ht@(HashTable sz _ hashes keys values _) k v = do
 
 
 ------------------------------------------------------------------------------
--- Returns either (-1,-1) (not found, and both buckets full ==> trigger
+-- Returns either (-1, 0) (not found, and both buckets full ==> trigger
 -- cuckoo), or the slot in the array where it would be safe to write the given
 -- key, and the hashcode to use there
 delete' :: (Hashable k, Eq k) =>
@@ -432,17 +444,19 @@ delete' :: (Hashable k, Eq k) =>
         -> Int                  -- ^ cache line start address 2
         -> Int                  -- ^ hash1
         -> Int                  -- ^ hash2
-        -> ST s (Int, Int)
+        -> ST s (Int, Elem)
 delete' (HashTable _ _ hashes keys values _) !updating !k b1 b2 h1 h2 = do
     debug $ "delete' b1=" ++ show b1
               ++ " b2=" ++ show b2
               ++ " h1=" ++ show h1
               ++ " h2=" ++ show h2
     prefetchWrite hashes b2
-    idx1 <- searchOne keys hashes k b1 h1
+    let !he1 = hashToElem h1
+    let !he2 = hashToElem h2
+    idx1 <- searchOne keys hashes k b1 he1
     if idx1 < 0
       then do
-        idx2 <- searchOne keys hashes k b2 h2
+        idx2 <- searchOne keys hashes k b2 he2
         if idx2 < 0
           then if updating
                  then do
@@ -451,16 +465,16 @@ delete' (HashTable _ _ hashes keys values _) !updating !k b1 b2 h1 h2 = do
                    idxE1 <- cacheLineSearch hashes b1 emptyMarker
                    debug $ "delete': idxE1 was " ++ show idxE1
                    if idxE1 >= 0
-                     then return (idxE1, h1)
+                     then return (idxE1, he1)
                      else do
                        idxE2 <- cacheLineSearch hashes b2 emptyMarker
                        debug $ "delete': idxE2 was " ++ show idxE1
                        if idxE2 >= 0
-                         then return (idxE2, h2)
-                         else return (-1, -1)
-                 else return (-1,-1)
-          else deleteIt idx2 h2
-      else deleteIt idx1 h1
+                         then return (idxE2, he2)
+                         else return (-1, 0)
+                 else return (-1, 0)
+          else deleteIt idx2 he2
+      else deleteIt idx1 he1
 
   where
     deleteIt !idx !h = do
@@ -520,18 +534,20 @@ cuckooOrFail (HashTable sz rng hashes keys values maxAttempts0)
         return $! b + z
 
     bumpIdx !idx !h !k !v = do
+        let !he = hashToElem h
         debug $ "bumpIdx idx=" ++ show idx ++ " h=" ++ show h
-        !h' <- U.readArray hashes idx
-        debug $ "bumpIdx: h' was " ++ show h'
+                  ++ " he=" ++ show he
+        !he' <- U.readArray hashes idx
+        debug $ "bumpIdx: he' was " ++ show he'
         !k' <- readArray keys idx
         v'  <- readArray values idx
-        U.writeArray hashes idx h
+        U.writeArray hashes idx he
         writeArray keys idx k
         writeArray values idx v
-        debug $ "bumped key with h'=" ++ show h'
-        return $! (h', k', v')
+        debug $ "bumped key with he'=" ++ show he'
+        return $! (he', k', v')
 
-    otherHash h k = if h2 == h then h1 else h2
+    otherHash he k = if hashToElem h1 == he then h2 else h1
       where
         h1 = hash1 k
         h2 = hash2 k
@@ -543,7 +559,7 @@ cuckooOrFail (HashTable sz rng hashes keys values maxAttempts0)
 
         if idx >= 0
           then do
-            U.writeArray hashes idx h
+            U.writeArray hashes idx $! hashToElem h
             writeArray keys idx k
             writeArray values idx v
             return Nothing
@@ -552,8 +568,8 @@ cuckooOrFail (HashTable sz rng hashes keys values maxAttempts0)
     go !b !h !k v !maxAttempts | maxAttempts == 0 = return $! Just (k,v)
                                | otherwise = do
         idx <- randomIdx b
-        (!h0', !k', v') <- bumpIdx idx h k v
-        let !h' = otherHash h0' k'
+        (!he0', !k', v') <- bumpIdx idx h k v
+        let !h' = otherHash he0' k'
         let !b' = whichLine h' sz
 
         tryWrite b' h' k' v' maxAttempts
@@ -566,11 +582,11 @@ grow :: (Eq k, Hashable k) =>
      -> v
      -> ST s (HashTable_ s k v)
 grow (HashTable sz _ hashes keys values _) k0 v0 = do
-    newHt <- grow' $! bumpSize sz
+    newHt <- grow' $! bumpSize bumpFactor sz
 
     mbR <- updateOrFail newHt k0 v0
     maybe (return newHt)
-          (\_ -> grow' $ bumpSize $ _size newHt)
+          (\_ -> grow' $ bumpSize bumpFactor $ _size newHt)
           mbR
 
   where
@@ -583,7 +599,7 @@ grow (HashTable sz _ hashes keys values _) k0 v0 = do
 
     rehash !newSz !newHt = go 0
       where
-        totSz = numWordsInCacheLine * sz
+        totSz = numElemsInCacheLine * sz
 
         go !i | i >= totSz = return newHt
               | otherwise  = do
@@ -595,7 +611,7 @@ grow (HashTable sz _ hashes keys values _) k0 v0 = do
 
                 mbR <- updateOrFail newHt k v
                 maybe (go $ i + 1)
-                      (\_ -> grow' $ bumpSize newSz)
+                      (\_ -> grow' $ bumpSize bumpFactor newSz)
                       mbR
               else go $ i + 1
 
@@ -610,36 +626,42 @@ hashPrime = if wordSize == 32 then hashPrime32 else hashPrime64
 
 ------------------------------------------------------------------------------
 hash1 :: Hashable k => k -> Int
-hash1 = hashF H.hash
+hash1 = H.hash
 {-# INLINE hash1 #-}
 
 
 hash2 :: Hashable k => k -> Int
-hash2 = hashF (H.hashWithSalt hashPrime)
+hash2 = H.hashWithSalt hashPrime
 {-# INLINE hash2 #-}
 
 
-hashF :: (k -> Int) -> k -> Int
-hashF f k = out
+------------------------------------------------------------------------------
+hashToElem :: Int -> Elem
+hashToElem !h = out
   where
-    !(I# h#) = f k
+    !(I# lo#) = h .&. U.elemMask
 
-    !m#  = maskw# h# 0#
+    !m#  = maskw# lo# 0#
     !nm# = not# m#
 
-    !r#  = ((int2Word# 1#) `and#` m#) `or#` (int2Word# h# `and#` nm#)
-    !out = I# (word2Int# r#)
-{-# INLINE hashF #-}
+    !r#  = ((int2Word# 1#) `and#` m#) `or#` (int2Word# lo# `and#` nm#)
+    !out = U.primWordToElem r#
+{-# INLINE hashToElem #-}
 
 
 ------------------------------------------------------------------------------
-emptyMarker :: Int
+emptyMarker :: Elem
 emptyMarker = 0
 
 
 ------------------------------------------------------------------------------
 maxLoad :: Double
 maxLoad = 0.88
+
+
+------------------------------------------------------------------------------
+bumpFactor :: Double
+bumpFactor = 0.73
 
 
 ------------------------------------------------------------------------------
@@ -670,4 +692,3 @@ writeRef (HT ref) ht = writeSTRef ref ht
 readRef :: HashTable s k v -> ST s (HashTable_ s k v)
 readRef (HT ref) = readSTRef ref
 {-# INLINE readRef #-}
-

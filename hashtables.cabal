@@ -1,12 +1,12 @@
 Name:                hashtables
-Version:             1.1.1.0
+Version:             1.2.0.0
 Synopsis:            Mutable hash tables in the ST monad
 Homepage:            http://github.com/gregorycollins/hashtables
 License:             BSD3
 License-file:        LICENSE
 Author:              Gregory Collins
 Maintainer:          greg@gregorycollins.net
-Copyright:           (c) 2011-2012, Google, Inc.
+Copyright:           (c) 2011-2013, Google, Inc.
 Category:            Data
 Build-type:          Simple
 Cabal-version:       >= 1.8
@@ -22,24 +22,24 @@ Description:
   .
   This package currently contains three hash table implementations:
   .
-    1. "Data.HashTable.ST.Basic" contains a basic open-addressing hash table
-       using linear probing as the collision strategy. On a pure speed basis it
-       should currently be the fastest available Haskell hash table
-       implementation for lookups, although it has a higher memory overhead
-       than the other tables and can suffer from long delays when the table is
-       resized because all of the elements in the table need to be rehashed.
-  .
-    2. "Data.HashTable.ST.Cuckoo" contains an implementation of \"cuckoo
+    1. "Data.HashTable.ST.Cuckoo" contains an implementation of \"cuckoo
        hashing\" as introduced by Pagh and Rodler in 2001 (see
        <http://en.wikipedia.org/wiki/Cuckoo_hashing>). Cuckoo hashing has
        worst-case /O(1)/ lookups and can reach a high \"load factor\", in which
-       the table can perform acceptably well even when more than 90% full.
+       the table can perform acceptably well even when approaching 90% full.
        Randomized testing shows this implementation of cuckoo hashing to be
        slightly faster on insert and slightly slower on lookup than
        "Data.Hashtable.ST.Basic", while being more space efficient by about a
        half-word per key-value mapping. Cuckoo hashing, like the basic hash
        table implementation using linear probing, can suffer from long delays
        when the table is resized.
+  .
+    2. "Data.HashTable.ST.Basic" contains a basic open-addressing hash table
+       using linear probing as the collision strategy. On a pure speed basis it
+       should currently be the fastest available Haskell hash table
+       implementation for lookups, although it has a higher memory overhead
+       than the other tables and can suffer from long delays when the table is
+       resized because all of the elements in the table need to be rehashed.
   .
     3. "Data.HashTable.ST.Linear" contains a linear hash table (see
        <http://en.wikipedia.org/wiki/Linear_hashing>), which trades some insert
@@ -76,7 +76,7 @@ Description:
       dangerous. Caveat emptor. In particular, these techniques are
       incompatible with HPC code coverage reports.
   .
-    * @sse41@, default /OFF/. If this flag is enabled, we use some SSE 4.1
+    * @sse42@, default /OFF/. If this flag is enabled, we use some SSE 4.2
       instructions (see <http://en.wikipedia.org/wiki/SSE4>, first available on
       Intel Core 2 processors) to speed up cache-line searches for cuckoo
       hashing.
@@ -89,7 +89,7 @@ Description:
   .
     * @portable@, default /OFF/. If this flag is enabled, we use only pure
       Haskell code and try not to use unportable GHC extensions. Turning this
-      flag on forces @unsafe-tricks@ and @sse41@ /OFF/.
+      flag on forces @unsafe-tricks@ and @sse42@ /OFF/.
   .
   This package has been tested with GHC 7.0.3, on:
   .
@@ -118,6 +118,10 @@ Extra-Source-Files:
   benchmark/src/Data/Vector/Algorithms/Shuffle.hs,
   benchmark/src/Data/Benchmarks/UnorderedCollections/Distributions.hs,
   benchmark/src/Data/Benchmarks/UnorderedCollections/Types.hs,
+  cbits/Makefile,
+  cbits/check.c,
+  cbits/defs.h,
+  cbits/sse-42-check.c,
   test/compute-overhead/ComputeOverhead.hs,
   test/hashtables-test.cabal,
   test/runTestsAndCoverage.sh,
@@ -139,8 +143,8 @@ Flag debug
   Description: if on, spew debugging output to stdout
   Default: False
 
-Flag sse41
-  Description: if on, use SSE 4.1 extensions to search cache lines very
+Flag sse42
+  Description: if on, use SSE 4.2 extensions to search cache lines very
                efficiently. The portable flag forces this off.
   Default: False
 
@@ -152,8 +156,16 @@ Flag portable
 Library
   hs-source-dirs:    src
 
+  if flag(sse42) && !flag(portable)
+    cc-options:  -DUSE_SSE_4_2 -msse4.2
+    cpp-options: -DUSE_SSE_4_2
+    C-sources:   cbits/sse-42.c
+
+  if !flag(portable) && !flag(sse42)
+    C-sources:       cbits/default.c
+
   if !flag(portable)
-    C-sources:       cbits/cfuncs.c
+    C-sources:       cbits/common.c
 
   Exposed-modules:   Data.HashTable.Class,
                      Data.HashTable.IO,
@@ -187,10 +199,6 @@ Library
   if flag(bounds-checking)
     cpp-options: -DBOUNDS_CHECKING
 
-  if flag(sse41) && !flag(portable)
-    cc-options: -DUSE_SSE_4_1 -msse4.1
-    cpp-options: -DUSE_SSE_4_1
-
   ghc-prof-options: -prof -auto-all
 
   if impl(ghc >= 6.12.0)
@@ -198,4 +206,3 @@ Library
                  -fno-warn-unused-do-bind
   else
     ghc-options: -Wall -fwarn-tabs -funbox-strict-fields -O2
-

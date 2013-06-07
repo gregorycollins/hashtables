@@ -1,6 +1,7 @@
 {-# LANGUAGE BangPatterns   #-}
 {-# LANGUAGE CPP            #-}
 {-# LANGUAGE EmptyDataDecls #-}
+{-# LANGUAGE ExplicitForAll #-}
 
 -- | This module provides wrappers in 'IO' around the functions from
 -- "Data.HashTable.Class".
@@ -61,7 +62,7 @@ import           Control.Monad.Primitive  (PrimState)
 import           Control.Monad.ST         (stToIO)
 import           Control.Monad.ST.Unsafe  (unsafeIOToST)
 #else
-import Control.Monad.ST (stToIO, unsafeIOToST)
+import           Control.Monad.ST         (stToIO, unsafeIOToST)
 #endif
 import           Data.Hashable            (Hashable)
 import qualified Data.HashTable.Class     as C
@@ -113,7 +114,7 @@ newSized = stToIO . C.newSized
 
 
 ------------------------------------------------------------------------------
--- | See the documentation for this function in "Data.HashTable.Class#v:update".
+-- | See the documentation for this function in "Data.HashTable.Class#v:insert".
 insert   :: (C.HashTable h, Eq k, Hashable k) =>
             IOHashTable h k v -> k -> v -> IO ()
 insert h k v = stToIO $ C.insert h k v

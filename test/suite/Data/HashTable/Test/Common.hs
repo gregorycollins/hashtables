@@ -50,6 +50,21 @@ data SomeTest = SomeTest HashTest
 
 
 ------------------------------------------------------------------------------
+announce :: Show a => String -> a -> IO ()
+#ifdef DEBUG
+announce nm x = do
+    putStrLn "\n============================="
+    putStrLn $ concat [ "starting "
+                      , nm
+                      , " with "
+                      , show x
+                      ]
+    putStrLn "============================="
+#else
+announce _ _ = return ()
+#endif
+
+
 assertEq :: (Eq a, Show a) =>
             String -> a -> a -> PropertyM IO ()
 assertEq s expected got =
@@ -98,6 +113,7 @@ testFromListToList prefix dummyArg =
     prop :: GenIO -> [(Int, Int)] -> PropertyM IO ()
     prop rng origL = do
         let l = V.toList $ shuffle rng $ V.fromList $ dedupe origL
+        run $ announce "fromListToList" l
         ht <- run $ fromList l
         l' <- run $ toList ht
         assertEq "fromList . toList == id" (sort l) (sort l')
@@ -114,7 +130,8 @@ testInsert prefix dummyArg =
 
   where
     prop :: GenIO -> ([(Int, Int)], (Int,Int)) -> PropertyM IO ()
-    prop rng (origL, (k,v)) = do
+    prop rng o@(origL, (k,v)) = do
+        run $ announce "insert" o
         let l = V.toList $ shuffle rng $ V.fromList $ remove k $ dedupe origL
         assert $ all (\t -> fst t /= k) l
 
@@ -139,7 +156,8 @@ testInsert2 prefix dummyArg =
 
   where
     prop :: GenIO -> ([(Int, Int)], (Int,Int,Int)) -> PropertyM IO ()
-    prop rng (origL, (k,v,v2)) = do
+    prop rng o@(origL, (k,v,v2)) = do
+        run $ announce "insert2" o
         let l = V.toList $ shuffle rng $ V.fromList $ dedupe origL
         ht   <- run $ fromList l
 
@@ -162,7 +180,8 @@ testNewAndInsert prefix dummyArg =
 
   where
     prop :: (Int,Int,Int) -> PropertyM IO ()
-    prop (k,v,v2) = do
+    prop o@(k,v,v2) = do
+        run $ announce "newAndInsert" o
         ht <- run new
 
         nothing <- run $ lookup ht k
@@ -209,6 +228,7 @@ testGrowTable prefix dummyArg =
 
     prop :: Int -> PropertyM IO ()
     prop n = do
+        run $ announce "growTable" n
         ht <- run $ go n
         i <- liftM head $ run $ sample' $ choose (0,n-1)
 
@@ -254,6 +274,8 @@ testDelete prefix dummyArg =
 
     prop :: Int -> PropertyM IO ()
     prop n = do
+        run $ announce "delete" n
+
         ht <- run $ go n
 
         i <- liftM head $ run $ sample' $ choose (4,n-1)
@@ -475,4 +497,3 @@ shuffle rng v = if V.null v then v else V.modify go v
             idx <- pickOne k
             swap k idx
             f (k-1)
-

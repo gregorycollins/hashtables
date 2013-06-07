@@ -6,9 +6,6 @@
 {-| An implementation of linear hash tables. (See
 <http://en.wikipedia.org/wiki/Linear_hashing>). Use this hash table if you...
 
-  * care a lot about fitting your data set into memory; of the hash tables
-    included in this collection, this one has the lowest space overhead
-
   * don't care that inserts and lookups are slower than the other hash table
     implementations in this collection (this one is slightly faster than
     @Data.HashTable@ from the base library in most cases)
@@ -92,17 +89,17 @@ module Data.HashTable.ST.Linear
   ) where
 
 ------------------------------------------------------------------------------
-import           Control.Monad                hiding (mapM_, foldM)
+import           Control.Monad                         hiding (foldM, mapM_)
 import           Control.Monad.ST
 import           Data.Bits
 import           Data.Hashable
 import           Data.STRef
-import           Prelude                      hiding (mapM_, lookup)
+import           Prelude                               hiding (lookup, mapM_)
 ------------------------------------------------------------------------------
-import qualified Data.HashTable.Class         as C
+import qualified Data.HashTable.Class                  as C
 import           Data.HashTable.Internal.Array
-import qualified Data.HashTable.Internal.Linear.Bucket as Bucket
 import           Data.HashTable.Internal.Linear.Bucket (Bucket)
+import qualified Data.HashTable.Internal.Linear.Bucket as Bucket
 import           Data.HashTable.Internal.Utils
 
 #ifdef DEBUG

@@ -19,7 +19,7 @@ EOF
     exit;
 fi
 
-./dist/build/testsuite/testsuite -j4 -a1000 $*
+./dist/build/testsuite/testsuite -a1000 $*
 
 DIR=dist/hpc
 

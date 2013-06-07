@@ -2,7 +2,7 @@ Name:                hashtables-test
 Version:             0.2
 Author:              Gregory Collins
 Maintainer:          greg@gregorycollins.net
-Copyright:           (c) 2011-2012, Google, Inc.
+Copyright:           (c) 2011-2013, Google, Inc.
 Category:            Data
 Build-type:          Simple
 Cabal-version:       >= 1.8
@@ -22,12 +22,10 @@ Flag bounds-checking
   Description: if on, use bounds-checking array accesses
   Default: False
 
-
-Flag sse41
-  Description: if on, use SSE 4.1 extensions to search cache lines very
-               efficiently
+Flag sse42
+  Description: if on, use SSE 4.2 extensions to search cache lines very
+               efficiently. The portable flag forces this off.
   Default: False
-
 
 Flag portable
   Description: if on, use only pure Haskell code and no GHC extensions.
@@ -38,8 +36,16 @@ Executable testsuite
   hs-source-dirs:    ../src suite
   main-is:           TestSuite.hs
 
+  if flag(sse42) && !flag(portable)
+    cc-options:  -DUSE_SSE_4_2 -msse4.2
+    cpp-options: -DUSE_SSE_4_2
+    C-sources:   ../cbits/sse-42.c
+
+  if !flag(portable) && !flag(sse42)
+    C-sources:       ../cbits/default.c
+
   if !flag(portable)
-    C-sources:       ../cbits/cfuncs.c
+    C-sources:       ../cbits/common.c
 
   ghc-prof-options:  -prof -auto-all
 
@@ -58,10 +64,6 @@ Executable testsuite
 
   if flag(bounds-checking)
     cpp-options: -DBOUNDS_CHECKING
-
-  if !flag(portable) && flag(sse41)
-    cc-options: -DUSE_SSE_4_1 -msse4.1
-    cpp-options: -DUSE_SSE_4_1
 
   Build-depends:     base                       >= 4     && <5,
                      hashable                   >= 1.1   && <2,
@@ -89,7 +91,17 @@ Executable testsuite
 Executable compute-overhead
   hs-source-dirs:    ../src suite compute-overhead
   main-is:           ComputeOverhead.hs
-  C-sources:         ../cbits/cfuncs.c
+
+  if flag(sse42) && !flag(portable)
+    cc-options:  -DUSE_SSE_4_2 -msse4.2
+    cpp-options: -DUSE_SSE_4_2
+    C-sources:   ../cbits/sse-42.c
+
+  if !flag(portable) && !flag(sse42)
+    C-sources:       ../cbits/default.c
+
+  if !flag(portable)
+    C-sources:       ../cbits/common.c
 
   ghc-prof-options:  -prof -auto-all
 
@@ -105,10 +117,6 @@ Executable compute-overhead
 
   if flag(bounds-checking)
     cpp-options: -DBOUNDS_CHECKING
-
-  if !flag(portable) && flag(sse41)
-    cc-options: -DUSE_SSE_4_1 -msse4.1
-    cpp-options: -DUSE_SSE_4_1
 
   Build-depends:     base                       >= 4       && <5,
                      hashable                   >= 1.1     && <2,

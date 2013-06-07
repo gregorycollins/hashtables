@@ -2,7 +2,7 @@
 {-# LANGUAGE CPP          #-}
 {-# LANGUAGE MagicHash    #-}
 
-module Data.HashTable.Internal.Utils 
+module Data.HashTable.Internal.Utils
   ( whichBucket
   , nextBestPrime
   , bumpSize
@@ -15,15 +15,16 @@ module Data.HashTable.Internal.Utils
   , highestBitMask
   , wordSize
   , cacheLineSize
-  , numWordsInCacheLine
+  , numElemsInCacheLine
   , cacheLineIntMask
   , cacheLineIntBits
   , forceSameType
   ) where
 
-import           Data.Bits hiding (shiftL)
-import           Data.Vector (Vector)
-import qualified Data.Vector as V
+import           Data.Bits                        hiding (shiftL)
+import           Data.HashTable.Internal.IntArray (Elem)
+import           Data.Vector                      (Vector)
+import qualified Data.Vector                      as V
 #if __GLASGOW_HASKELL__ >= 503
 import           GHC.Exts
 #else
@@ -41,10 +42,10 @@ cacheLineSize :: Int
 cacheLineSize = 64
 
 
-numWordsInCacheLine :: Int
-numWordsInCacheLine = z
+numElemsInCacheLine :: Int
+numElemsInCacheLine = z
   where
-    !z = cacheLineSize `div` (wordSize `div` 8)
+    !z = cacheLineSize `div` (bitSize (0::Elem) `div` 8)
 
 
 -- | What you have to mask an integer index by to tell if it's
@@ -52,11 +53,11 @@ numWordsInCacheLine = z
 cacheLineIntMask :: Int
 cacheLineIntMask = z
   where
-    !z = numWordsInCacheLine - 1
+    !z = numElemsInCacheLine - 1
 
 
 cacheLineIntBits :: Int
-cacheLineIntBits = log2 $ toEnum numWordsInCacheLine
+cacheLineIntBits = log2 $ toEnum numElemsInCacheLine
 
 
 ------------------------------------------------------------------------------
@@ -237,12 +238,8 @@ nextBestPrime x = fromEnum yi
 
 
 ------------------------------------------------------------------------------
-bumpSize :: Int -> Int
-bumpSize !s = nextBestPrime s'
-  where
-    -- double at small sizes, then 3/2 thereafter
-    s' = if s < 24593 then 2*s else (s `div` 2) * 3
-
+bumpSize :: Double -> Int -> Int
+bumpSize !maxLoad !s = nextBestPrime $! ceiling (fromIntegral s / maxLoad)
 
 
 ------------------------------------------------------------------------------
