@@ -25,6 +25,8 @@ performance, while maintaining competitive insert performance.
 
 /Space overhead/
 
+FIXME(greg): recompute
+
 This table is not especially memory-efficient; firstly, the table has a maximum
 load factor of 0.83 and will be resized if load exceeds this value. Secondly,
 to improve insert and lookup performance, we store a 16-bit hash code for each
@@ -190,7 +192,7 @@ newSizedReal m = do
     let m' = ((m + numElemsInCacheLine - 1) `div` numElemsInCacheLine)
              * numElemsInCacheLine
     h   <- U.newArray m'
-    kv  <- newInterleaved m undefined
+    kv  <- newInterleaved m $ error "read uninitialized element"
     let mm = sizeOf m `iShiftL` 1
     lds <- BA.newByteArray mm
     BA.fillByteArray lds 0 mm 0

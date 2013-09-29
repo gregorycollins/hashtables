@@ -84,7 +84,6 @@ import           Data.Hashable                                      hiding
 import qualified Data.Hashable                                      as H
 import           Data.Int
 import           Data.Maybe
-import           Data.Primitive.Array
 import           Data.STRef
 import           GHC.Exts
 import           Prelude                                            hiding
@@ -93,6 +92,7 @@ import           Prelude                                            hiding
                                                                      read)
 ------------------------------------------------------------------------------
 import qualified Data.HashTable.Class                               as C
+import           Data.HashTable.Internal.Array
 import           Data.HashTable.Internal.CacheLine
 import           Data.HashTable.Internal.CheapPseudoRandomBitStream
 import           Data.HashTable.Internal.IntArray                   (Elem)
@@ -113,8 +113,7 @@ data HashTable_ s k v = HashTable
                                               --   numElemsInCacheLine * _size
     , _rng         :: {-# UNPACK #-} !(BitStream s)
     , _hashes      :: {-# UNPACK #-} !(U.IntArray s)
-    , _keys        :: {-# UNPACK #-} !(MutableArray s k)
-    , _values      :: {-# UNPACK #-} !(MutableArray s v)
+    , _keyValues   :: {-# UNPACK #-} !(InterleavedArray s k v)
     , _maxAttempts :: {-# UNPACK #-} !Int
     }
 
@@ -168,7 +167,7 @@ insert ht !k !v = readRef ht >>= \h -> insert' h k v >>= writeRef ht
 computeOverhead :: HashTable s k v -> ST s Double
 computeOverhead htRef = readRef htRef >>= work
   where
-    work (HashTable sz _ _ _ _ _) = do
+    work (HashTable sz _ _ _ _) = do
         nFilled <- foldM f 0 htRef
 
         let oh = (totSz `div` hashCodesPerWord)  -- one half or quarter word
@@ -194,7 +193,7 @@ delete :: (Hashable k, Eq k) =>
        -> ST s ()
 delete htRef k = readRef htRef >>= go
   where
-    go ht@(HashTable sz _ _ _ _ _) = do
+    go ht@(HashTable sz _ _ _ _) = do
         _ <- delete' ht False k b1 b2 h1 h2
         return ()
 
@@ -224,20 +223,20 @@ lookup' :: (Eq k, Hashable k) =>
            HashTable_ s k v
         -> k
         -> ST s (Maybe v)
-lookup' (HashTable sz _ hashes keys values _) !k = do
+lookup' (HashTable sz _ hashes keyValues _) !k = do
     -- Unlike the write case, prefetch doesn't seem to help here for lookup.
     -- prefetchRead hashes b2
-    idx1 <- searchOne keys hashes k b1 he1
+    idx1 <- searchOne keyValues hashes k b1 he1
 
     if idx1 >= 0
       then do
-        v <- readArray values idx1
+        v <- readValue keyValues idx1
         return $! Just v
       else do
-        idx2 <- searchOne keys hashes k b2 he2
+        idx2 <- searchOne keyValues hashes k b2 he2
         if idx2 >= 0
           then do
-            v <- readArray values idx2
+            v <- readValue keyValues idx2
             return $! Just v
           else
             return Nothing
@@ -256,13 +255,13 @@ lookup' (HashTable sz _ hashes keys values _) !k = do
 
 ------------------------------------------------------------------------------
 searchOne :: (Eq k) =>
-             MutableArray s k
+             InterleavedArray s k v
           -> U.IntArray s
           -> k
           -> Int
           -> Elem
           -> ST s Int
-searchOne !keys !hashes !k !b0 !h = go b0
+searchOne !keyValues !hashes !k !b0 !h = go b0
   where
     go !b = do
         debug $ "searchOne: go/" ++ show b ++ "/" ++ show h
@@ -272,7 +271,7 @@ searchOne !keys !hashes !k !b0 !h = go b0
         case idx of
           -1 -> return (-1)
           _  -> do
-              k' <- readArray keys idx
+              k' <- readKey keyValues idx
               if k == k'
                 then return idx
                 else do
@@ -300,7 +299,7 @@ foldMWork :: (a -> (k,v) -> ST s a)
           -> a
           -> HashTable_ s k v
           -> ST s a
-foldMWork f seed0 (HashTable sz _ hashes keys values _) = go 0 seed0
+foldMWork f seed0 (HashTable sz _ hashes keyValues _) = go 0 seed0
   where
     totSz = numElemsInCacheLine * sz
 
@@ -309,8 +308,8 @@ foldMWork f seed0 (HashTable sz _ hashes keys values _) = go 0 seed0
         h <- U.readArray hashes i
         if h /= emptyMarker
           then do
-            k <- readArray keys i
-            v <- readArray values i
+            k <- readKey   keyValues i
+            v <- readValue keyValues i
             !seed' <- f seed (k,v)
             go (i+1) seed'
 
@@ -333,7 +332,7 @@ mapM_ f htRef = readRef htRef >>= mapMWork f
 mapMWork :: ((k,v) -> ST s a)
          -> HashTable_ s k v
          -> ST s ()
-mapMWork f (HashTable sz _ hashes keys values _) = go 0
+mapMWork f (HashTable sz _ hashes keyValues _) = go 0
   where
     totSz = numElemsInCacheLine * sz
 
@@ -342,8 +341,8 @@ mapMWork f (HashTable sz _ hashes keys values _) = go 0
         h <- U.readArray hashes i
         if h /= emptyMarker
           then do
-            k <- readArray keys i
-            v <- readArray values i
+            k <- readKey keyValues i
+            v <- readValue keyValues i
             _ <- f (k,v)
             go (i+1)
           else
@@ -354,6 +353,11 @@ mapMWork f (HashTable sz _ hashes keys values _) = go 0
 ---------------------------------
 -- Private declarations follow --
 ---------------------------------
+
+
+------------------------------------------------------------------------------
+noElement :: a
+noElement = error "read uninitialized element"
 
 
 ------------------------------------------------------------------------------
@@ -368,10 +372,9 @@ newSizedReal nbuckets = do
 
     rng    <- newBitStream
     hashes <- U.newArray ntotal
-    keys   <- newArray ntotal undefined
-    values <- newArray ntotal undefined
+    array  <- newInterleaved ntotal noElement
 
-    return $! HashTable nbuckets rng hashes keys values maxAttempts
+    return $! HashTable nbuckets rng hashes array maxAttempts
 
 
 insert' :: (Eq k, Hashable k) =>
@@ -396,7 +399,7 @@ updateOrFail :: (Eq k, Hashable k) =>
              -> k
              -> v
              -> ST s (Maybe (k,v))
-updateOrFail ht@(HashTable sz _ hashes keys values _) k v = do
+updateOrFail ht@(HashTable sz _ hashes keyValues _) k v = do
     debug $ "updateOrFail: begin: sz = " ++ show sz
     debug $ "   h1=" ++ show h1 ++ ", h2=" ++ show h2
             ++ ", b1=" ++ show b1 ++ ", b2=" ++ show b2
@@ -407,8 +410,8 @@ updateOrFail ht@(HashTable sz _ hashes keys values _) k v = do
     if didx >= 0
       then do
         U.writeArray hashes didx hashCode
-        writeArray keys didx k
-        writeArray values didx v
+        writeKey   keyValues didx k
+        writeValue keyValues didx v
         return Nothing
       else cuckoo
 
@@ -445,7 +448,7 @@ delete' :: (Hashable k, Eq k) =>
         -> Int                  -- ^ hash1
         -> Int                  -- ^ hash2
         -> ST s (Int, Elem)
-delete' (HashTable _ _ hashes keys values _) !updating !k b1 b2 h1 h2 = do
+delete' (HashTable _ _ hashes keyValues _) !updating !k b1 b2 h1 h2 = do
     debug $ "delete' b1=" ++ show b1
               ++ " b2=" ++ show b2
               ++ " h1=" ++ show h1
@@ -453,10 +456,10 @@ delete' (HashTable _ _ hashes keys values _) !updating !k b1 b2 h1 h2 = do
     prefetchWrite hashes b2
     let !he1 = hashToElem h1
     let !he2 = hashToElem h2
-    idx1 <- searchOne keys hashes k b1 he1
+    idx1 <- searchOne keyValues hashes k b1 he1
     if idx1 < 0
       then do
-        idx2 <- searchOne keys hashes k b2 he2
+        idx2 <- searchOne keyValues hashes k b2 he2
         if idx2 < 0
           then if updating
                  then do
@@ -481,8 +484,8 @@ delete' (HashTable _ _ hashes keys values _) !updating !k b1 b2 h1 h2 = do
         if not updating
           then do
             U.writeArray hashes idx emptyMarker
-            writeArray keys idx undefined
-            writeArray values idx undefined
+            writeKey keyValues idx noElement
+            writeValue keyValues idx noElement
           else return ()
         return $! (idx, h)
 {-# INLINE delete' #-}
@@ -498,7 +501,7 @@ cuckooOrFail :: (Hashable k, Eq k) =>
              -> k                 -- ^ key
              -> v                 -- ^ value
              -> ST s (Maybe (k,v))
-cuckooOrFail (HashTable sz rng hashes keys values maxAttempts0)
+cuckooOrFail (HashTable sz rng hashes keyValues maxAttempts0)
                  !h1_0 !h2_0 !b1_0 !b2_0 !k0 !v0 = do
     -- at this point we know:
     --
@@ -539,11 +542,11 @@ cuckooOrFail (HashTable sz rng hashes keys values maxAttempts0)
                   ++ " he=" ++ show he
         !he' <- U.readArray hashes idx
         debug $ "bumpIdx: he' was " ++ show he'
-        !k' <- readArray keys idx
-        v'  <- readArray values idx
+        !k' <- readKey   keyValues idx
+        v'  <- readValue keyValues idx
         U.writeArray hashes idx he
-        writeArray keys idx k
-        writeArray values idx v
+        writeKey keyValues idx k
+        writeValue keyValues idx v
         debug $ "bumped key with he'=" ++ show he'
         return $! (he', k', v')
 
@@ -560,8 +563,8 @@ cuckooOrFail (HashTable sz rng hashes keys values maxAttempts0)
         if idx >= 0
           then do
             U.writeArray hashes idx $! hashToElem h
-            writeArray keys idx k
-            writeArray values idx v
+            writeKey keyValues idx k
+            writeValue keyValues idx v
             return Nothing
           else go b h k v $! maxAttempts - 1
 
@@ -581,7 +584,7 @@ grow :: (Eq k, Hashable k) =>
      -> k
      -> v
      -> ST s (HashTable_ s k v)
-grow (HashTable sz _ hashes keys values _) k0 v0 = do
+grow (HashTable sz _ hashes keyValues _) k0 v0 = do
     newHt <- grow' $! bumpSize bumpFactor sz
 
     mbR <- updateOrFail newHt k0 v0
@@ -596,7 +599,6 @@ grow (HashTable sz _ hashes keys values _) k0 v0 = do
         newHt <- newSizedReal newSz
         rehash newSz newHt
 
-
     rehash !newSz !newHt = go 0
       where
         totSz = numElemsInCacheLine * sz
@@ -606,8 +608,8 @@ grow (HashTable sz _ hashes keys values _) k0 v0 = do
             h <- U.readArray hashes i
             if (h /= emptyMarker)
               then do
-                k <- readArray keys i
-                v <- readArray values i
+                k <- readKey   keyValues i
+                v <- readValue keyValues i
 
                 mbR <- updateOrFail newHt k v
                 maybe (go $ i + 1)
