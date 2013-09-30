@@ -1,5 +1,5 @@
 {-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE RankNTypes   #-}
 
 module Criterion.Collection.Sample
   ( Benchmark(..)
@@ -16,23 +16,23 @@ module Criterion.Collection.Sample
 import           Control.DeepSeq
 import           Control.Monad
 import           Control.Monad.Trans
-import           Criterion hiding (Benchmark)
+import           Criterion                           hiding (Benchmark)
+import           Criterion.Collection.Internal.Types
 import           Criterion.Config
 import           Criterion.Environment
-import           Criterion.IO
+import           Criterion.IO.Printf
 import           Criterion.Measurement
 import           Criterion.Monad
-import           Criterion.Collection.Internal.Types
 import           Data.IORef
-import           Data.List (foldl')
+import           Data.List                           (foldl')
 import           Data.Monoid
-import qualified Data.Vector as V
-import qualified Data.Vector.Unboxed as U
-import           Statistics.Quantile (continuousBy, cadpw)
+import qualified Data.Vector                         as V
+import qualified Data.Vector.Unboxed                 as U
+import           Statistics.Quantile                 (cadpw, continuousBy)
 import           Statistics.Sample
-import           System.Mem (performGC)
+import           System.Mem                          (performGC)
 import           System.Random.MWC
-import           Text.Printf (printf)
+import           Text.Printf                         (printf)
 
 ------------------------------------------------------------------------------
 data MeasurementMode = PerBatch | PerOperation
