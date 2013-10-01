@@ -1,12 +1,12 @@
 Name:                hashtables
-Version:             1.1.1.0
+Version:             1.1.2.0
 Synopsis:            Mutable hash tables in the ST monad
 Homepage:            http://github.com/gregorycollins/hashtables
 License:             BSD3
 License-file:        LICENSE
 Author:              Gregory Collins
 Maintainer:          greg@gregorycollins.net
-Copyright:           (c) 2011-2012, Google, Inc.
+Copyright:           (c) 2011-2013, Google, Inc.
 Category:            Data
 Build-type:          Simple
 Cabal-version:       >= 1.8
@@ -170,9 +170,9 @@ Library
                      Data.HashTable.Internal.Linear.Bucket
 
   Build-depends:     base      >= 4   && <5,
-                     hashable  >= 1.1 && <1.2,
+                     hashable  >= 1.1 && <1.2 || >= 1.2.1 && <1.3,
                      primitive,
-                     vector    >= 0.7 && <0.11
+                     vector    >= 0.7 && <0.12
 
   if flag(portable)
     cpp-options: -DNO_C_SEARCH -DPORTABLE
