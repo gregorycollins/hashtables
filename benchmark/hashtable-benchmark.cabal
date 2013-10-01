@@ -33,7 +33,7 @@ Executable hashtable-benchmark
                      statistics           >= 0.8     && <0.11,
                      threads              >= 0.4     && <0.6,
                      unordered-containers >= 0.2     && <0.3,
-                     vector               >= 0.7     && <0.11,
+                     vector               >= 0.7     && <0.12,
                      vector-algorithms    >= 0.5     && <0.6
 
   if flag(chart)
