@@ -208,7 +208,7 @@ delete htRef k = do
     debug $ "entered: delete: hash=" ++ show h
     ht <- readRef htRef
     _  <- delete' ht True k h
-    return ()
+    return $! ()
   where
     !h = hash k
 {-# INLINE delete #-}
@@ -332,7 +332,7 @@ mapM_ f htRef = readRef htRef >>= work
   where
     work (HashTable sz _ hashes keyValues) = go 0
       where
-        go !i | i >= sz = return ()
+        go !i | i >= sz = return $! ()
               | otherwise = do
             h <- U.readArray hashes i
             if recordIsEmpty h || recordIsDeleted h
@@ -355,7 +355,7 @@ computeOverhead htRef = readRef htRef >>= work
         let k = fromIntegral ld / sz
         return $ constOverhead/sz + (2 + 2*ws*(1-k)) / (k * ws)
       where
-        ws = fromIntegral $! bitSize (0::Int) `div` 8
+        ws = fromIntegral $! (bitSize $! (0::Int)) `div` 8
         sz = fromIntegral sz'
         -- Change these if you change the representation
         constOverhead = 14
@@ -547,7 +547,7 @@ delete' (HashTable sz loads hashes keyValues) clearOut k h = do
             -- because the table isn't full, we know that there must be either
             -- an empty or a deleted marker somewhere in the table. Assert this
             -- here.
-            assert (idx >= 0) $ return ()
+            assert (idx >= 0) $ return $! ()
             h0 <- U.readArray hashes idx
             debug $ "h0 was " ++ show h0
 

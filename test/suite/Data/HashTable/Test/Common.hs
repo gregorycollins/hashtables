@@ -1,7 +1,8 @@
-{-# LANGUAGE BangPatterns             #-}
-{-# LANGUAGE CPP                      #-}
-{-# LANGUAGE ForeignFunctionInterface #-}
-{-# LANGUAGE RankNTypes               #-}
+{-# LANGUAGE BangPatterns               #-}
+{-# LANGUAGE CPP                        #-}
+{-# LANGUAGE ForeignFunctionInterface   #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE RankNTypes                 #-}
 
 module Data.HashTable.Test.Common
   ( FixedTableType
@@ -13,12 +14,13 @@ module Data.HashTable.Test.Common
 ------------------------------------------------------------------------------
 import           Control.Exception                    (evaluate)
 import           Control.Monad                        (foldM_, liftM, when)
-
+import qualified Control.Monad
 #if MIN_VERSION_base(4,4,0)
 import           Control.Monad.ST.Unsafe              (unsafeIOToST)
 #else
 import           Control.Monad.ST                     (unsafeIOToST)
 #endif
+import           Data.Hashable
 import           Data.IORef
 import           Data.List                            hiding (delete, insert,
                                                        lookup)
@@ -31,7 +33,8 @@ import           System.Timeout
 import           Test.Framework
 import           Test.Framework.Providers.HUnit
 import           Test.Framework.Providers.QuickCheck2
-import           Test.HUnit                           (assertFailure)
+import           Test.HUnit                           (assertEqual,
+                                                       assertFailure)
 import           Test.QuickCheck
 import           Test.QuickCheck.Monadic
 ------------------------------------------------------------------------------
@@ -99,6 +102,8 @@ tests prefix dummyArg = testGroup prefix $ map f ts
          , SomeTest testDelete
          , SomeTest testNastyFullLookup
          , SomeTest testForwardSearch3
+         , SomeTest testBadHashFunction
+         , SomeTest testLotsOfDeletions
          , SomeTest testTrivials
          ]
 
@@ -198,7 +203,7 @@ testNewAndInsert prefix dummyArg =
         assertEq ("lookup3 " ++ show k) (Just v2) r'
 
         ctRef <- run $ newIORef (0::Int)
-        run $ mapM_ (const $ modifyIORef ctRef (+1)) ht
+        run $ mapM_ (\(x,y) -> x `seq` y `seq` modifyIORef ctRef (+1)) ht
 
         ct <- run $ readIORef ctRef
         assertEq "count = 1" 1 ct
@@ -259,6 +264,7 @@ testDelete prefix dummyArg =
 
             case i of
               3  -> do
+                       delete ht 9999999
                        delete ht 2
                        delete ht 3
                        insert ht 2 2
@@ -293,55 +299,16 @@ testDelete prefix dummyArg =
 
 
 ------------------------------------------------------------------------------
-data Action = Lookup Int
-            | Insert Int
-            | Delete Int
-            deriving Show
-
-
-timeout_ :: Int -> IO a -> IO ()
-#ifdef PORTABLE
-timeout_ t m = timeout t m >>= maybe (assertFailure "timeout")
-                                     (const $ return ())
-#else
-
-foreign import ccall safe "suicide"
-  c_suicide :: Ptr CInt -> CInt -> IO ()
-
-
--- Foreign thread can get blocked here, stalling progress. We'll make damned
--- sure we bomb out.
-timeout_ t m = do
-    ptr <- malloc
-    poke ptr 1
-    forkOS $ suicide ptr
-    threadDelay 1000
-    r <- timeout t m
-    poke ptr 0
-    maybe (assertFailure "timeout")
-          (const $ return ())
-          r
-  where
-    suicide ptr = do
-        c_suicide ptr $ toEnum t
-        free ptr
-#endif
-
-applyAction :: forall h . C.HashTable h =>
-               IOHashTable h Int () -> Action -> IO ()
-applyAction tbl (Lookup key) = lookup tbl key >> return ()
-applyAction tbl (Insert key) = insert tbl key ()
-applyAction tbl (Delete key) = delete tbl key
-
-
 testTrivials :: HashTest
 testTrivials prefix dummyArg = testCase (prefix ++ "/trivials") $ do
     tbl <- newSized 37
+    insert tbl (0::Int) (0::Int)
     forceType tbl dummyArg
     computeOverhead tbl >>= evaluate
     return $! ()
 
 
+------------------------------------------------------------------------------
 testForwardSearch3 :: HashTest
 testForwardSearch3 prefix dummyArg = testCase (prefix ++ "/forwardSearch3") go
   where
@@ -399,6 +366,7 @@ testForwardSearch3 prefix dummyArg = testCase (prefix ++ "/forwardSearch3") go
       ]
 
 
+------------------------------------------------------------------------------
 testNastyFullLookup :: HashTest
 testNastyFullLookup prefix dummyArg = testCase (prefix ++ "/nastyFullLookup") go
   where
@@ -454,6 +422,84 @@ testNastyFullLookup prefix dummyArg = testCase (prefix ++ "/nastyFullLookup") go
       , Insert 46
       , Lookup 66
       ]
+
+
+------------------------------------------------------------------------------
+newtype BadHashInt = BadHashInt Int
+  deriving (Eq, Num, Real, Ord, Enum, Show, Bounded, Integral)
+
+instance Hashable BadHashInt where
+    hashWithSalt salt (BadHashInt x) = salt * (x `mod` 64)
+
+
+------------------------------------------------------------------------------
+testBadHashFunction :: HashTest
+testBadHashFunction prefix dummyArg =
+    testCase (prefix ++ "/badHashFunction") $ do
+        let xs = [BadHashInt 0 .. BadHashInt 1024] `zip` repeat ()
+        ht <- fromList xs
+        lookup ht (BadHashInt 1024) >>= assertEqual "lookup" (Just ())
+        lookup ht (BadHashInt 1025) >>= assertEqual "failed lookup" Nothing
+
+        xs' <- toList ht
+        assertEqual "fromList . toList == id" (sort xs) (sort xs')
+        forceType dummyArg ht
+
+
+------------------------------------------------------------------------------
+testLotsOfDeletions :: HashTest
+testLotsOfDeletions prefix dummyArg =
+    testCase (prefix ++ "/lotsOfDeletions") $ do
+        ht <- fromListWithSizeHint 1024 $ [0..(1024::Int)] `zip` repeat ()
+        Control.Monad.mapM_ (delete ht) [0..1024]
+        let ys = [0..4096] `zip` repeat ()
+        Control.Monad.mapM_ (uncurry $ insert ht) ys
+        toList ht >>= assertEqual "tolist" ys . sort
+        forceType dummyArg ht
+
+
+------------------------------------------------------------------------------
+data Action = Lookup Int
+            | Insert Int
+            | Delete Int
+            deriving Show
+
+
+timeout_ :: Int -> IO a -> IO ()
+#ifdef PORTABLE
+timeout_ t m = timeout t m >>= maybe (assertFailure "timeout")
+                                     (const $ return ())
+#else
+
+foreign import ccall safe "suicide"
+  c_suicide :: Ptr CInt -> CInt -> IO ()
+
+
+-- Foreign thread can get blocked here, stalling progress. We'll make damned
+-- sure we bomb out.
+timeout_ t m = do
+    ptr <- malloc
+    poke ptr 1
+    forkOS $ suicide ptr
+    threadDelay 1000
+    r <- timeout t m
+    poke ptr 0
+    maybe (assertFailure "timeout")
+          (const $ return ())
+          r
+  where
+    suicide ptr = do
+        c_suicide ptr $ toEnum t
+        free ptr
+#endif
+
+
+------------------------------------------------------------------------------
+applyAction :: forall h . C.HashTable h =>
+               IOHashTable h Int () -> Action -> IO ()
+applyAction tbl (Lookup key) = lookup tbl key >> return ()
+applyAction tbl (Insert key) = insert tbl key ()
+applyAction tbl (Delete key) = delete tbl key
 
 
 ------------------------------------------------------------------------------

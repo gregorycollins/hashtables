@@ -35,7 +35,7 @@ import           Data.Word
 
 ------------------------------------------------------------------------------
 wordSize :: Int
-wordSize = bitSize (0::Int)
+wordSize = bitSize $! (0::Int)
 
 
 cacheLineSize :: Int
@@ -45,7 +45,7 @@ cacheLineSize = 64
 numElemsInCacheLine :: Int
 numElemsInCacheLine = z
   where
-    !z = cacheLineSize `div` (bitSize (0::Elem) `div` 8)
+    !z = cacheLineSize `div` ((bitSize $! (0::Elem)) `div` 8)
 
 
 -- | What you have to mask an integer index by to tell if it's
@@ -302,5 +302,5 @@ highestBitMask !x0 = case (x0 .|. shiftRL x0 1) of
 
 ------------------------------------------------------------------------------
 forceSameType :: Monad m => a -> a -> m ()
-forceSameType _ _ = return ()
+forceSameType _ _ = return $! ()
 {-# INLINE forceSameType #-}

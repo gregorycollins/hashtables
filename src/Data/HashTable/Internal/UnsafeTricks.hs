@@ -9,10 +9,7 @@ module Data.HashTable.Internal.UnsafeTricks
   , toKey
   , fromKey
   , emptyRecord
-  , deletedRecord
   , keyIsEmpty
-  , keyIsDeleted
-  , writeDeletedElement
   , makeEmptyVector
   ) where
 
@@ -28,24 +25,17 @@ import           Unsafe.Coerce
 ------------------------------------------------------------------------------
 #ifdef UNSAFETRICKS
 type Key a = Any
-
 #else
-data Key a = Key !a 
+data Key a = Key !a
            | EmptyElement
-           | DeletedElement
-  deriving (Show)
 #endif
 
 
 ------------------------------------------------------------------------------
 -- Type signatures
 emptyRecord :: Key a
-deletedRecord :: Key a
 keyIsEmpty :: Key a -> Bool
-keyIsDeleted :: Key a -> Bool
 makeEmptyVector :: PrimMonad m => Int -> m (MVector (PrimState m) (Key a))
-writeDeletedElement :: PrimMonad m =>
-                       MVector (PrimState m) (Key a) -> Int -> m ()
 toKey :: a -> Key a
 fromKey :: Key a -> a
 
@@ -57,18 +47,10 @@ data TombStone = EmptyElement
 {-# NOINLINE emptyRecord #-}
 emptyRecord = unsafeCoerce EmptyElement
 
-{-# NOINLINE deletedRecord #-}
-deletedRecord = unsafeCoerce DeletedElement
-
 {-# INLINE keyIsEmpty #-}
 keyIsEmpty a = x# ==# 1#
   where
     !x# = reallyUnsafePtrEquality# a emptyRecord
-
-{-# INLINE keyIsDeleted #-}
-keyIsDeleted a = x# ==# 1#
-  where
-    !x# = reallyUnsafePtrEquality# a deletedRecord
 
 {-# INLINE toKey #-}
 toKey = unsafeCoerce
@@ -80,13 +62,8 @@ fromKey = unsafeCoerce
 
 emptyRecord = EmptyElement
 
-deletedRecord = DeletedElement
-
 keyIsEmpty EmptyElement = True
 keyIsEmpty _            = False
-
-keyIsDeleted DeletedElement = True
-keyIsDeleted _              = False
 
 toKey = Key
 
@@ -99,7 +76,3 @@ fromKey _ = error "impossible"
 ------------------------------------------------------------------------------
 {-# INLINE makeEmptyVector #-}
 makeEmptyVector m = M.replicate m emptyRecord
-
-------------------------------------------------------------------------------
-{-# INLINE writeDeletedElement #-}
-writeDeletedElement v i = M.unsafeWrite v i deletedRecord

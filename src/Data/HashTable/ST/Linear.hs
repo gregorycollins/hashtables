@@ -229,7 +229,7 @@ mapM_ f htRef = readRef htRef >>= work
       where
         !sz = power2 lvl
 
-        go !i | i >= sz = return ()
+        go !i | i >= sz = return $! ()
               | otherwise = do
             b <- readArray buckets i
             Bucket.mapM_ f b
@@ -297,7 +297,7 @@ delete' :: Eq k =>
 delete' buckets h0 k = do
     bucket <- readArray buckets h0
     _ <- Bucket.delete bucket k
-    return ()
+    return $! ()
 
 
 ------------------------------------------------------------------------------
@@ -385,7 +385,7 @@ primitiveInsert' buckets !h0 !k !v = do
     debug $ "primitiveInsert': snoccing bucket"
     (!hw,m) <- Bucket.snoc bucket k v
     debug $ "primitiveInsert': bucket snoc'd"
-    maybe (return ())
+    maybe (return $! ())
           (writeArray buckets h0)
           m
     return hw

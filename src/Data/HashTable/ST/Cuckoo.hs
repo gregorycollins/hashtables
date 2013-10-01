@@ -179,7 +179,7 @@ computeOverhead htRef = readRef htRef >>= work
         return $! fromIntegral (oh::Int) / fromIntegral nFilled
 
       where
-        hashCodesPerWord = (bitSize (0 :: Int)) `div` 16
+        hashCodesPerWord = (bitSize $! (0 :: Int)) `div` 16
         totSz = numElemsInCacheLine * sz
 
         f !a _ = return $! a+1
@@ -196,7 +196,7 @@ delete htRef k = readRef htRef >>= go
   where
     go ht@(HashTable sz _ _ _ _ _) = do
         _ <- delete' ht False k b1 b2 h1 h2
-        return ()
+        return $! ()
 
       where
         h1 = hash1 k
@@ -270,7 +270,7 @@ searchOne !keys !hashes !k !b0 !h = go b0
         debug $ "searchOne: cacheLineSearch returned " ++ show idx
 
         case idx of
-          -1 -> return (-1)
+          -1 -> return $! (-1)
           _  -> do
               k' <- readArray keys idx
               if k == k'
@@ -278,7 +278,7 @@ searchOne !keys !hashes !k !b0 !h = go b0
                 else do
                   let !idx' = idx + 1
                   if isCacheLineAligned idx'
-                    then return (-1)
+                    then return $! (-1)
                     else go idx'
 {-# INLINE searchOne #-}
 
@@ -337,7 +337,7 @@ mapMWork f (HashTable sz _ hashes keys values _) = go 0
   where
     totSz = numElemsInCacheLine * sz
 
-    go !i | i >= totSz = return ()
+    go !i | i >= totSz = return $! ()
           | otherwise  = do
         h <- U.readArray hashes i
         if h /= emptyMarker
@@ -471,8 +471,8 @@ delete' (HashTable _ _ hashes keys values _) !updating !k b1 b2 h1 h2 = do
                        debug $ "delete': idxE2 was " ++ show idxE1
                        if idxE2 >= 0
                          then return (idxE2, he2)
-                         else return (-1, 0)
-                 else return (-1, 0)
+                         else return $! (-1, 0)
+                 else return $! (-1, 0)
           else deleteIt idx2 he2
       else deleteIt idx1 he1
 
@@ -483,7 +483,7 @@ delete' (HashTable _ _ hashes keys values _) !updating !k b1 b2 h1 h2 = do
             U.writeArray hashes idx emptyMarker
             writeArray keys idx undefined
             writeArray values idx undefined
-          else return ()
+          else return $! ()
         return $! (idx, h)
 {-# INLINE delete' #-}
 

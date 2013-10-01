@@ -67,20 +67,28 @@ type InterleavedArray s k v = MutableArray s Any
 -- are not set, so we just set the key everywhere
 newInterleaved :: Int -> k -> ST s (InterleavedArray s k v)
 newInterleaved n k = newArray (n `iShiftL` 1) (unsafeCoerce k)
+{-# INLINE newInterleaved #-}
 
 
 ------------------------------------------------------------------------------
 readKey :: InterleavedArray s k v -> Int -> ST s k
 readKey arr i = unsafeCoerce <$> (M.readArray arr $! i `iShiftL` 1)
+{-# INLINE readKey #-}
+
 
 ------------------------------------------------------------------------------
 readValue :: InterleavedArray s k v -> Int -> ST s v
 readValue arr i = unsafeCoerce <$> (M.readArray arr $! i `iShiftL` 1 + 1)
+{-# INLINE readValue #-}
+
 
 ------------------------------------------------------------------------------
 writeKey :: InterleavedArray s k v -> Int -> k -> ST s ()
 writeKey arr i k = M.writeArray arr (i `iShiftL` 1) (unsafeCoerce k)
+{-# INLINE writeKey #-}
+
 
 ------------------------------------------------------------------------------
 writeValue :: InterleavedArray s k v -> Int -> v -> ST s ()
 writeValue arr i v = M.writeArray arr (i `iShiftL` 1 + 1) (unsafeCoerce v)
+{-# INLINE writeValue #-}
