@@ -442,20 +442,12 @@ readRef (HT ref) = readSTRef ref
 
 
 ------------------------------------------------------------------------------
-{-# INLINE debug #-}
 debug :: String -> ST s ()
-
-#ifdef DEBUG
-debug s = unsafeIOToST $ do
-              putStrLn s
-              hFlush stdout
+#if defined(DEBUG)
+debug s = unsafeIOToST (putStrLn s >> hFlush stdout)
+#elif defined(TESTSUITE)
+debug x = length x `seq` return $! ()
 #else
-#ifdef TESTSUITE
-debug !s = do
-    let !_ = length s
-    return $! ()
-#else
-debug _ = return ()
+debug _ = return $! ()
 #endif
-#endif
-
+{-# INLINE debug #-}

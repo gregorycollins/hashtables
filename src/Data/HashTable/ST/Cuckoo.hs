@@ -666,10 +666,12 @@ bumpFactor = 0.73
 
 ------------------------------------------------------------------------------
 debug :: String -> ST s ()
-#ifdef DEBUG
+#if defined(DEBUG)
 debug s = unsafeIOToST (putStrLn s >> hFlush stdout)
+#elif defined(TESTSUITE)
+debug x = length x `seq` return $! ()
 #else
-debug _ = return ()
+debug _ = return $! ()
 #endif
 {-# INLINE debug #-}
 

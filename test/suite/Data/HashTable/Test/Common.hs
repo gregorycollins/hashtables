@@ -11,6 +11,7 @@ module Data.HashTable.Test.Common
   ) where
 
 ------------------------------------------------------------------------------
+import           Control.Exception                    (evaluate)
 import           Control.Monad                        (foldM_, liftM, when)
 
 #if MIN_VERSION_base(4,4,0)
@@ -98,6 +99,7 @@ tests prefix dummyArg = testGroup prefix $ map f ts
          , SomeTest testDelete
          , SomeTest testNastyFullLookup
          , SomeTest testForwardSearch3
+         , SomeTest testTrivials
          ]
 
 
@@ -216,7 +218,7 @@ testGrowTable prefix dummyArg =
   where
     generator = choose (32,2048)
 
-    go n = new >>= go' (0::Int)
+    go n = newSized 37 >>= go' (0::Int)
       where
         go' !i !ht | i >= n = return ht
                    | otherwise = do
@@ -330,6 +332,14 @@ applyAction :: forall h . C.HashTable h =>
 applyAction tbl (Lookup key) = lookup tbl key >> return ()
 applyAction tbl (Insert key) = insert tbl key ()
 applyAction tbl (Delete key) = delete tbl key
+
+
+testTrivials :: HashTest
+testTrivials prefix dummyArg = testCase (prefix ++ "/trivials") $ do
+    tbl <- newSized 37
+    forceType tbl dummyArg
+    computeOverhead tbl >>= evaluate
+    return $! ()
 
 
 testForwardSearch3 :: HashTest

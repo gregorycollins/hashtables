@@ -651,10 +651,12 @@ readRef (HT ref) = readSTRef ref
 
 
 ------------------------------------------------------------------------------
-{-# INLINE debug #-}
 debug :: String -> ST s ()
-#ifdef DEBUG
-debug s = unsafeIOToST (putStrLn s)
+#if defined(DEBUG)
+debug s = unsafeIOToST (putStrLn s >> hFlush stdout)
+#elif defined(TESTSUITE)
+debug x = length x `seq` return $! ()
 #else
-debug _ = return ()
+debug _ = return $! ()
 #endif
+{-# INLINE debug #-}
