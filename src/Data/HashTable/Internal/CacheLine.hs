@@ -45,6 +45,7 @@ import           GHC.Exts
 #if __GLASGOW_HASKELL__ >= 707
 import GHC.Exts (isTrue#)
 #else
+isTrue# :: Bool -> Bool
 isTrue# = id
 #endif
 
