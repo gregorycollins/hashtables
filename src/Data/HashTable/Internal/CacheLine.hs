@@ -42,6 +42,12 @@ import           GHC.Int
 import           Data.HashTable.Internal.Utils
 import           GHC.Exts
 
+#if __GLASGOW_HASKELL__ >= 707
+import           GHC.Exts                         (isTrue#)
+#else
+isTrue# :: Bool -> Bool
+isTrue# = id
+#endif
 
 {-# INLINE prefetchRead  #-}
 {-# INLINE prefetchWrite #-}
@@ -144,7 +150,7 @@ advanceByCacheLineSize !(I# start0#) !(I# vecSize#) = out
 
 {-# INLINE isCacheLineAligned #-}
 isCacheLineAligned :: Int -> Bool
-isCacheLineAligned (I# x#) = r# ==# 0#
+isCacheLineAligned (I# x#) = isTrue# (r# ==# 0#)
   where
     !(I# m#) = cacheLineIntMask
     !mw#     = int2Word# m#
