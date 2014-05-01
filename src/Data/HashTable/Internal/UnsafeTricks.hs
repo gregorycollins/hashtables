@@ -22,6 +22,14 @@ import qualified Data.Vector.Mutable as M
 #ifdef UNSAFETRICKS
 import           GHC.Exts
 import           Unsafe.Coerce
+
+#if __GLASGOW_HASKELL__ >= 707
+import           GHC.Exts                         (isTrue#)
+#else
+isTrue# :: Bool -> Bool
+isTrue# = id
+#endif
+
 #endif
 
 
@@ -61,12 +69,12 @@ emptyRecord = unsafeCoerce EmptyElement
 deletedRecord = unsafeCoerce DeletedElement
 
 {-# INLINE keyIsEmpty #-}
-keyIsEmpty a = x# ==# 1#
+keyIsEmpty a = isTrue# (x# ==# 1#)
   where
     !x# = reallyUnsafePtrEquality# a emptyRecord
 
 {-# INLINE keyIsDeleted #-}
-keyIsDeleted a = x# ==# 1#
+keyIsDeleted a = isTrue# (x# ==# 1#)
   where
     !x# = reallyUnsafePtrEquality# a deletedRecord
 
