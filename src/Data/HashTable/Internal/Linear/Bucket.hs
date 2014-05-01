@@ -26,6 +26,9 @@ module Data.HashTable.Internal.Linear.Bucket
 import qualified Control.Monad
 import           Control.Monad hiding (mapM_, foldM)
 import           Control.Monad.ST
+#ifdef DEBUG
+import           Control.Monad.ST.Unsafe
+#endif
 import           Data.Maybe (fromMaybe)
 import           Data.HashTable.Internal.Array
 import           Data.STRef

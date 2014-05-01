@@ -97,6 +97,7 @@ module Data.HashTable.ST.Basic
 import           Control.Exception                 (assert)
 import           Control.Monad                     hiding (foldM, mapM_)
 import           Control.Monad.ST
+import           Control.Monad.ST.Unsafe
 import           Data.Bits
 import           Data.Hashable                     (Hashable)
 import qualified Data.Hashable                     as H
@@ -508,7 +509,7 @@ delete' (HashTable sz loadRef delRef hashes keys values) clearOut k h = do
                        , show deletedMarker ]
 
         !idx <- forwardSearch3 hashes b sz he emptyMarker deletedMarker
-        debug $ "forwardSearch3 returned " ++ show idx
+        debug $ "forwardSearch3 returned " ++ show idx ++ " with sz=" ++ show sz ++ ", b=" ++ show b
 
         if wrap && idx >= b0
           -- we wrapped around in the search and didn't find our hash code;
