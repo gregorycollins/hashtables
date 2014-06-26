@@ -191,7 +191,7 @@ Library
 
   if !flag(portable) && flag(unsafe-tricks) && impl(ghc)
     build-depends: ghc-prim
-    cpp-options = -DUNSAFETRICKS
+    cpp-options: -DUNSAFETRICKS
 
   if flag(debug)
     cpp-options: -DDEBUG
