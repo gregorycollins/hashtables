@@ -1,6 +1,7 @@
 #*#
 **/#*#
 **/*~
+.cabal-sandbox
 *.hi
 *.o
 *.prof
@@ -8,6 +9,7 @@
 *~
 TAGS
 benchmark/*.csv
+cabal.sandbox.config
 dist
 dist/**
 test/*.tix
