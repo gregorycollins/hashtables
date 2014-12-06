@@ -6,7 +6,7 @@ License:             BSD3
 License-file:        LICENSE
 Author:              Gregory Collins
 Maintainer:          greg@gregorycollins.net
-Copyright:           (c) 2011-2013, Google, Inc.
+Copyright:           (c) 2011-2014, Google, Inc.
 Category:            Data
 Build-type:          Simple
 Cabal-version:       >= 1.8

@@ -15,3 +15,5 @@ test/.hpc
 test/.hpc/**
 test/dist
 test/dist/**
+cabal.sandbox.config
+.cabal-sandbox
