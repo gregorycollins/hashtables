@@ -19,6 +19,7 @@ module Data.HashTable.Internal.Utils
   , cacheLineIntMask
   , cacheLineIntBits
   , forceSameType
+  , unsafeIOToST
   ) where
 
 import           Data.Bits                        hiding (shiftL)
@@ -32,6 +33,11 @@ import qualified Data.Bits
 import           Data.Word
 #endif
 
+#if MIN_VERSION_base(4,4,0)
+import           Control.Monad.ST.Unsafe          (unsafeIOToST)
+#else
+import           Control.Monad.ST                 (unsafeIOToST)
+#endif
 
 ------------------------------------------------------------------------------
 wordSize :: Int

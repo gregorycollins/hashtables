@@ -12,12 +12,6 @@ module Data.HashTable.Test.Common
 
 ------------------------------------------------------------------------------
 import           Control.Monad                        (foldM_, liftM, when)
-
-#if MIN_VERSION_base(4,4,0)
-import           Control.Monad.ST.Unsafe              (unsafeIOToST)
-#else
-import           Control.Monad.ST                     (unsafeIOToST)
-#endif
 import           Data.IORef
 import           Data.List                            hiding (delete, insert,
                                                        lookup)
@@ -35,6 +29,7 @@ import           Test.QuickCheck
 import           Test.QuickCheck.Monadic
 ------------------------------------------------------------------------------
 import qualified Data.HashTable.Class                 as C
+import           Data.HashTable.Internal.Utils        (unsafeIOToST)
 import           Data.HashTable.IO
 
 #ifndef PORTABLE

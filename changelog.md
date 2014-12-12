@@ -5,6 +5,8 @@
   - Fixed bug in C code re: clang interpreting "inline" strictly according to
     (insane) C99 semantics: http://clang.llvm.org/compatibility.html#inline
 
+  - Fixed a compile bug affecting versions of base older than 4.4.
+
 ## 1.2.0.0
 
 ### Switch to smaller hash codes to go faster and save space.
@@ -18,11 +20,11 @@ application; switching to a 16-bit key will very slightly increase the number
 of hash collisions within buckets (meaning that we'll compare more keys), but
 will pay big dividends in terms of:
 
-  * reduced wastage of RAM
+  - reduced wastage of RAM
 
-  * searching more keys at once, allowing buckets to grow bigger
+  - searching more keys at once, allowing buckets to grow bigger
 
-  * more cache hits on the hash codes array.
+  - more cache hits on the hash codes array.
 
 ### Other
 

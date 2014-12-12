@@ -1,5 +1,5 @@
-{-# LANGUAGE BangPatterns  #-}
-{-# LANGUAGE CPP           #-}
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE CPP          #-}
 
 module Data.HashTable.Internal.Linear.Bucket
 ( Bucket,
@@ -23,16 +23,16 @@ module Data.HashTable.Internal.Linear.Bucket
 
 
 ------------------------------------------------------------------------------
+import           Control.Monad                        hiding (foldM, mapM_)
 import qualified Control.Monad
-import           Control.Monad hiding (mapM_, foldM)
-import           Control.Monad.ST
+import           Control.Monad.ST                     (ST)
 #ifdef DEBUG
-import           Control.Monad.ST.Unsafe
+import           Data.HashTable.Internal.Utils        (unsafeIOToST)
 #endif
-import           Data.Maybe (fromMaybe)
 import           Data.HashTable.Internal.Array
+import           Data.Maybe                           (fromMaybe)
 import           Data.STRef
-import           Prelude hiding (lookup, mapM_)
+import           Prelude                              hiding (lookup, mapM_)
 ------------------------------------------------------------------------------
 import           Data.HashTable.Internal.UnsafeTricks
 
@@ -192,7 +192,7 @@ snoc bucket | keyIsEmpty bucket = mkNew
 
             debug "Bucket.snoc: spill finished, snoccing element"
             let (Bucket _ hwRef' keys' values') = fromKey bk
-            
+
             let !hw' = hw+1
             writeArray keys' hw k
             writeArray values' hw v
@@ -296,7 +296,7 @@ mapM_ f bucketKey
     | otherwise = doMap $ fromKey bucketKey
   where
     doMap (Bucket sz hwRef keys values) = do
-        hw <- readSTRef hwRef 
+        hw <- readSTRef hwRef
         debug $ "Bucket.mapM_: hw was " ++ show hw ++ ", sz was " ++ show sz
         go hw 0
       where
@@ -316,7 +316,7 @@ foldM f !seed0 bucketKey
     | otherwise = doMap $ fromKey bucketKey
   where
     doMap (Bucket _ hwRef keys values) = do
-        hw <- readSTRef hwRef 
+        hw <- readSTRef hwRef
         go hw seed0 0
       where
         go !hw !seed !i | i >= hw = return seed

@@ -96,8 +96,7 @@ module Data.HashTable.ST.Basic
 ------------------------------------------------------------------------------
 import           Control.Exception                 (assert)
 import           Control.Monad                     hiding (foldM, mapM_)
-import           Control.Monad.ST
-import           Control.Monad.ST.Unsafe
+import           Control.Monad.ST                  (ST)
 import           Data.Bits
 import           Data.Hashable                     (Hashable)
 import qualified Data.Hashable                     as H

@@ -78,9 +78,6 @@ import           Control.Monad                                      hiding
                                                                      (foldM,
                                                                      mapM_)
 import           Control.Monad.ST
-#ifdef DEBUG
-import           Control.Monad.ST.Unsafe
-#endif
 import           Data.Bits
 import           Data.Hashable                                      hiding
                                                                      (hash)

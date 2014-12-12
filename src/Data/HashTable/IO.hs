@@ -57,21 +57,17 @@ module Data.HashTable.IO
 
 
 ------------------------------------------------------------------------------
-import           Control.Monad.Primitive  (PrimState)
-#if MIN_VERSION_base(4,4,0)
-import           Control.Monad.ST         (stToIO)
-import           Control.Monad.ST.Unsafe  (unsafeIOToST)
-#else
-import           Control.Monad.ST         (stToIO, unsafeIOToST)
-#endif
-import           Data.Hashable            (Hashable)
-import qualified Data.HashTable.Class     as C
-import           Prelude                  hiding (lookup, mapM_)
+import           Control.Monad.Primitive       (PrimState)
+import           Control.Monad.ST              (stToIO)
+import           Data.Hashable                 (Hashable)
+import qualified Data.HashTable.Class          as C
+import           Prelude                       hiding (lookup, mapM_)
 
 ------------------------------------------------------------------------------
-import qualified Data.HashTable.ST.Basic  as B
-import qualified Data.HashTable.ST.Cuckoo as Cu
-import qualified Data.HashTable.ST.Linear as L
+import           Data.HashTable.Internal.Utils (unsafeIOToST)
+import qualified Data.HashTable.ST.Basic       as B
+import qualified Data.HashTable.ST.Cuckoo      as Cu
+import qualified Data.HashTable.ST.Linear      as L
 
 
 ------------------------------------------------------------------------------
