@@ -2,10 +2,10 @@
 
 #include "defs.h"
 
-inline int32_t mask(int32_t a, int32_t b) { return -(a == b); }
+static inline int32_t mask(int32_t a, int32_t b) { return -(a == b); }
 
 #if defined(__GNUC__)
-inline int32_t first_bit_set(int32_t a) {
+static inline int32_t first_bit_set(int32_t a) {
     return __builtin_ffs(a) - 1;
 }
 #else
@@ -14,7 +14,7 @@ static uint8_t de_bruijn_table[] = {
     31, 27, 13, 23, 21, 19, 16,  7, 26, 12, 18,  6, 11,  5, 10,  9
 };
 
-inline int32_t first_bit_set(int32_t a) {
+static inline int32_t first_bit_set(int32_t a) {
     int32_t zero_case = mask(0, a);
     uint32_t x = (uint32_t) (a & -a);
     x *= 0x077CB531;
@@ -23,7 +23,8 @@ inline int32_t first_bit_set(int32_t a) {
 }
 #endif
 
-inline uint32_t line_mask(small_hash_t* array, int start, small_hash_t x1) {
+static inline uint32_t line_mask(small_hash_t* array, int start,
+                                 small_hash_t x1) {
     small_hash_t* p      = array + start;
     uint32_t      m1     = 0;
     uint32_t      m2     = 0;
@@ -72,8 +73,8 @@ inline uint32_t line_mask(small_hash_t* array, int start, small_hash_t x1) {
     return (m1 | m2 | m3) >> offset;
 }
 
-inline uint32_t line_mask_2(small_hash_t* array, int start,
-                            small_hash_t x1, small_hash_t x2) {
+static inline uint32_t line_mask_2(small_hash_t* array, int start,
+                                   small_hash_t x1, small_hash_t x2) {
     small_hash_t* p      = array + start;
     uint32_t      m1     = 0;
     uint32_t      m2     = 0;
@@ -122,9 +123,9 @@ inline uint32_t line_mask_2(small_hash_t* array, int start,
     return (m1 | m2 | m3) >> offset;
 }
 
-inline uint32_t line_mask_3(small_hash_t* array, int start,
-                            small_hash_t x1, small_hash_t x2,
-                            small_hash_t x3) {
+static inline uint32_t line_mask_3(small_hash_t* array, int start,
+                                   small_hash_t x1, small_hash_t x2,
+                                   small_hash_t x3) {
     small_hash_t* p      = array + start;
     uint32_t      m1     = 0;
     uint32_t      m2     = 0;
@@ -173,7 +174,7 @@ inline uint32_t line_mask_3(small_hash_t* array, int start,
 }
 
 
-inline int32_t line_result(uint32_t m, int start) {
+static inline int32_t line_result(uint32_t m, int start) {
     int32_t p  = first_bit_set((int32_t) m);
     int32_t mm = mask(p, -1);
     return mm | (start + p);

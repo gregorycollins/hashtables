@@ -1,5 +1,10 @@
 # Hashtables changelog
 
+## 1.2.0.1
+
+  - Fixed bug in C code re: clang interpreting "inline" strictly according to
+    (insane) C99 semantics: http://clang.llvm.org/compatibility.html#inline
+
 ## 1.2.0.0
 
 ### Switch to smaller hash codes to go faster and save space.

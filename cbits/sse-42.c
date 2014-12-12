@@ -27,7 +27,7 @@ static inline int32_t first_bit_set(int32_t a) {
 }
 #endif
 
-inline __m128i fill(small_hash_t v) {
+static inline __m128i fill(small_hash_t v) {
     int32_t v1 = (((int)v) << 16) | v;
     __m128i x = _mm_cvtsi32_si128(0);
     x = _mm_insert_epi32(x, v1, 0);
