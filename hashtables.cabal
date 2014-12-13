@@ -122,6 +122,7 @@ Extra-Source-Files:
   cbits/check.c,
   cbits/defs.h,
   cbits/sse-42-check.c,
+  changelog.md,
   test/compute-overhead/ComputeOverhead.hs,
   test/hashtables-test.cabal,
   test/runTestsAndCoverage.sh,
