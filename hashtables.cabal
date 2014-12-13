@@ -91,16 +91,6 @@ Description:
       Haskell code and try not to use unportable GHC extensions. Turning this
       flag on forces @unsafe-tricks@ and @sse42@ /OFF/.
   .
-  This package has been tested with GHC 7.0.3, on:
-  .
-    * a MacBook Pro running Snow Leopard with an Intel Core i5 processor,
-      running GHC 7.0.3 in 64-bit mode.
-  .
-    * an Arch Linux desktop with an AMD Phenom II X4 940 quad-core processor.
-  .
-    * a MacBook Pro running Snow Leopard with an Intel Core 2 Duo processor,
-      running GHC 6.12.3 in 32-bit mode.
-  .
   Please send bug reports to
   <https://github.com/gregorycollins/hashtables/issues>.
 
