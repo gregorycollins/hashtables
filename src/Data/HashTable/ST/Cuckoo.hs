@@ -531,7 +531,7 @@ cuckooOrFail (HashTable sz rng hashes keys values maxAttempts0)
   where
     randomIdx !b = do
         !z <- getNBits cacheLineIntBits rng
-        return $! b + z
+        return $! b + fromIntegral z
 
     bumpIdx !idx !h !k !v = do
         let !he = hashToElem h

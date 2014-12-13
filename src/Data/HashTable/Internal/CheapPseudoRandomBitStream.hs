@@ -9,11 +9,11 @@ module Data.HashTable.Internal.CheapPseudoRandomBitStream
 
 import           Control.Applicative
 import           Control.Monad.ST
-import           Data.Bits
-import           Data.Int
+import           Data.Bits                     ((.&.))
 import           Data.STRef
-import qualified Data.Vector.Unboxed as V
-import           Data.Vector.Unboxed (Vector)
+import           Data.Vector.Unboxed           (Vector)
+import qualified Data.Vector.Unboxed           as V
+import           Data.Word                     (Word, Word32, Word64)
 
 import           Data.HashTable.Internal.Utils
 
@@ -21,7 +21,7 @@ import           Data.HashTable.Internal.Utils
 ------------------------------------------------------------------------------
 -- Chosen by fair dice roll. Guaranteed random. More importantly, there are an
 -- equal number of 0 and 1 bits in both of these vectors.
-random32s :: Vector Int32
+random32s :: Vector Word32
 random32s = V.fromList [ 0xe293c315
                        , 0x82e2ff62
                        , 0xcb1ef9ae
@@ -42,7 +42,7 @@ random32s = V.fromList [ 0xe293c315
 
 
 ------------------------------------------------------------------------------
-random64s :: Vector Int64
+random64s :: Vector Word64
 random64s = V.fromList [ 0x62ef447e007e8732
                        , 0x149d6acb499feef8
                        , 0xca7725f9b404fbf8
@@ -68,16 +68,16 @@ numRandoms = 16
 
 
 ------------------------------------------------------------------------------
-randoms :: Vector Int
-randoms | wordSize == 32 = V.map fromEnum random32s
-        | otherwise      = V.map fromEnum random64s
+randoms :: Vector Word
+randoms | wordSize == 32 = V.map fromIntegral random32s
+        | otherwise      = V.map fromIntegral random64s
 
 
 ------------------------------------------------------------------------------
 data BitStream s = BitStream {
-      _curRandom :: !(STRef s Int)
-    , _bitsLeft  :: !(STRef s Int)
-    , _randomPos :: !(STRef s Int)
+      _curRandom :: !(STRef s Word)
+    , _bitsLeft  :: !(STRef s Int )
+    , _randomPos :: !(STRef s Int )
     }
 
 
@@ -91,12 +91,12 @@ newBitStream =
 
 
 ------------------------------------------------------------------------------
-getNextBit :: BitStream s -> ST s Int
+getNextBit :: BitStream s -> ST s Word
 getNextBit = getNBits 1
 
 
 ------------------------------------------------------------------------------
-getNBits :: Int -> BitStream s -> ST s Int
+getNBits :: Int -> BitStream s -> ST s Word
 getNBits nbits (BitStream crRef blRef rpRef) = do
     !bl <- readSTRef blRef
     if bl < nbits
@@ -112,8 +112,8 @@ getNBits nbits (BitStream crRef blRef rpRef) = do
         extractBits r
 
     extractBits r = do
-        let !b = r .&. ((1 `iShiftL` nbits) - 1)
-        writeSTRef crRef $! (r `iShiftRL` nbits)
+        let !b = r .&. ((1 `shiftL` nbits) - 1)
+        writeSTRef crRef $! (r `shiftRL` nbits)
         return b
 
     nextBits bl = do
