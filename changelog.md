@@ -7,6 +7,9 @@
 
   - Fixed a compile bug affecting versions of base older than 4.4.
 
+  - Changed int type from Int to Word in CheapPseudoRandomBitStream to fix an
+    integer overflow warning.
+
 ## 1.2.0.0
 
 ### Switch to smaller hash codes to go faster and save space.
