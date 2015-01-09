@@ -77,7 +77,7 @@ module Data.HashTable.ST.Cuckoo
 import           Control.Monad                                      hiding
                                                                      (foldM,
                                                                      mapM_)
-import           Control.Monad.ST
+import           Control.Monad.ST                                   (ST)
 import           Data.Bits
 import           Data.Hashable                                      hiding
                                                                      (hash)

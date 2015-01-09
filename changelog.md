@@ -1,5 +1,12 @@
 # Hashtables changelog
 
+## 1.2.0.2
+
+  - Fixed serious bug (https://github.com/gregorycollins/hashtables/issues/24)
+    in basic hash table making it impossible to reliably store more than 64k
+    elements (after shortening the hash code arrays to 16 bits I neglected to
+    realize that I was storing item counts using the same array type).
+
 ## 1.2.0.1
 
   - Fixed bug in C code re: clang interpreting "inline" strictly according to

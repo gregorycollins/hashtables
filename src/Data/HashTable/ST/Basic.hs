@@ -102,6 +102,7 @@ import           Data.Hashable                     (Hashable)
 import qualified Data.Hashable                     as H
 import           Data.Maybe
 import           Data.Monoid
+import qualified Data.Primitive.ByteArray          as A
 import           Data.STRef
 import           GHC.Exts
 import           Prelude                           hiding (lookup, mapM_, read)
@@ -118,15 +119,38 @@ import           Data.HashTable.Internal.Utils
 -- | An open addressing hash table using linear probing.
 newtype HashTable s k v = HT (STRef s (HashTable_ s k v))
 
+type SizeRefs s = A.MutableByteArray s
+
+intSz :: Int
+intSz = (bitSize (0::Int) `div` 8)
+
+readLoad :: SizeRefs s -> ST s Int
+readLoad = flip A.readByteArray 0
+
+writeLoad :: SizeRefs s -> Int -> ST s ()
+writeLoad = flip A.writeByteArray 0
+
+readDelLoad :: SizeRefs s -> ST s Int
+readDelLoad = flip A.readByteArray 1
+
+writeDelLoad :: SizeRefs s -> Int -> ST s ()
+writeDelLoad = flip A.writeByteArray 1
+
+newSizeRefs :: ST s (SizeRefs s)
+newSizeRefs = do
+    let asz = 2 * intSz
+    a <- A.newAlignedPinnedByteArray asz intSz
+    A.fillByteArray a 0 asz 0
+    return a
+
+
 data HashTable_ s k v = HashTable
-    { _size    :: {-# UNPACK #-} !Int
-    , _load    :: !(U.IntArray s)  -- ^ How many entries in the table? Prefer
-                                   -- unboxed vector here to STRef because I
-                                   -- know it will be appropriately strict
-    , _delLoad :: !(U.IntArray s)  -- ^ How many deleted entries in the table?
-    , _hashes  :: !(U.IntArray s)
-    , _keys    :: {-# UNPACK #-} !(MutableArray s k)
-    , _values  :: {-# UNPACK #-} !(MutableArray s v)
+    { _size   :: {-# UNPACK #-} !Int
+    , _load   :: !(SizeRefs s)   -- ^ 2-element array, stores how many entries
+                                  -- and deleted entries are in the table.
+    , _hashes :: !(U.IntArray s)
+    , _keys   :: {-# UNPACK #-} !(MutableArray s k)
+    , _values :: {-# UNPACK #-} !(MutableArray s v)
     }
 
 
@@ -177,9 +201,8 @@ newSizedReal m = do
     h  <- U.newArray m'
     k  <- newArray m undefined
     v  <- newArray m undefined
-    ld <- U.newArray 1
-    dl <- U.newArray 1
-    return $! HashTable m ld dl h k v
+    ld <- newSizeRefs
+    return $! HashTable m ld h k v
 
 
 ------------------------------------------------------------------------------
@@ -207,7 +230,7 @@ lookup htRef !k = do
     ht <- readRef htRef
     lookup' ht
   where
-    lookup' (HashTable sz _ _ hashes keys values) = do
+    lookup' (HashTable sz _ hashes keys values) = do
         let !b = whichBucket h sz
         debug $ "lookup h=" ++ show h ++ " sz=" ++ show sz ++ " b=" ++ show b
         go b 0 sz
@@ -297,7 +320,7 @@ insert htRef !k !v = do
 foldM :: (a -> (k,v) -> ST s a) -> a -> HashTable s k v -> ST s a
 foldM f seed0 htRef = readRef htRef >>= work
   where
-    work (HashTable sz _ _ hashes keys values) = go 0 seed0
+    work (HashTable sz _ hashes keys values) = go 0 seed0
       where
         go !i !seed | i >= sz = return seed
                     | otherwise = do
@@ -317,7 +340,7 @@ foldM f seed0 htRef = readRef htRef >>= work
 mapM_ :: ((k,v) -> ST s b) -> HashTable s k v -> ST s ()
 mapM_ f htRef = readRef htRef >>= work
   where
-    work (HashTable sz _ _ hashes keys values) = go 0
+    work (HashTable sz _ hashes keys values) = go 0
       where
         go !i | i >= sz = return ()
               | otherwise = do
@@ -337,8 +360,8 @@ mapM_ f htRef = readRef htRef >>= work
 computeOverhead :: HashTable s k v -> ST s Double
 computeOverhead htRef = readRef htRef >>= work
   where
-    work (HashTable sz' loadRef _ _ _ _) = do
-        !ld <- U.readArray loadRef 0
+    work (HashTable sz' loadRef _ _ _) = do
+        !ld <- readLoad loadRef
         let k = fromIntegral ld / sz
         return $ constOverhead/sz + (2 + 2*ws*(1-k)) / (k * ws)
       where
@@ -384,11 +407,11 @@ insertRecord !sz !hashes !keys !values !h !key !value = do
 checkOverflow :: (Eq k, Hashable k) =>
                  (HashTable_ s k v)
               -> ST s (HashTable_ s k v)
-checkOverflow ht@(HashTable sz ldRef delRef _ _ _) = do
-    !ld <- U.readArray ldRef 0
+checkOverflow ht@(HashTable sz ldRef _ _ _) = do
+    !ld <- readLoad ldRef
     let !ld' = ld + 1
-    U.writeArray ldRef 0 ld'
-    !dl <- U.readArray delRef 0
+    writeLoad ldRef ld'
+    !dl <- readDelLoad ldRef
 
     debug $ concat [ "checkOverflow: sz="
                    , show sz
@@ -406,11 +429,11 @@ checkOverflow ht@(HashTable sz ldRef delRef _ _ _) = do
 
 ------------------------------------------------------------------------------
 rehashAll :: Hashable k => HashTable_ s k v -> Int -> ST s (HashTable_ s k v)
-rehashAll (HashTable sz loadRef _ hashes keys values) sz' = do
+rehashAll (HashTable sz loadRef hashes keys values) sz' = do
     debug $ "rehashing: old size " ++ show sz ++ ", new size " ++ show sz'
     ht' <- newSizedReal sz'
-    let (HashTable _ loadRef' _ newHashes newKeys newValues) = ht'
-    U.readArray loadRef 0 >>= U.writeArray loadRef' 0
+    let (HashTable _ loadRef' newHashes newKeys newValues) = ht'
+    readLoad loadRef >>= writeLoad loadRef'
     rehash newHashes newKeys newValues
     return ht'
 
@@ -430,7 +453,7 @@ rehashAll (HashTable sz loadRef _ hashes keys values) sz' = do
 
 ------------------------------------------------------------------------------
 growTable :: Hashable k => HashTable_ s k v -> ST s (HashTable_ s k v)
-growTable ht@(HashTable sz _ _ _ _ _) = do
+growTable ht@(HashTable sz _ _ _ _) = do
     let !sz' = bumpSize maxLoad sz
     rehashAll ht sz'
 
@@ -460,7 +483,7 @@ delete' :: (Hashable k, Eq k) =>
         -> k
         -> Int
         -> ST s Int
-delete' (HashTable sz loadRef delRef hashes keys values) clearOut k h = do
+delete' (HashTable sz loadRef hashes keys values) clearOut k h = do
     debug $ "delete': h=" ++ show h ++ " he=" ++ show he
             ++ " sz=" ++ show sz ++ " b0=" ++ show b0
     pair@(found, slot) <- go mempty b0 False
@@ -471,14 +494,17 @@ delete' (HashTable sz loadRef delRef hashes keys values) clearOut k h = do
     when found $ bump loadRef (-1)
 
     -- bump the delRef lower if we're writing over a deleted marker
-    when (not clearOut && _wasDeleted slot == 1) $ bump delRef (-1)
+    when (not clearOut && _wasDeleted slot == 1) $ bumpDel loadRef (-1)
     return b'
 
   where
     he = hashToElem h
     bump ref i = do
-        !ld <- U.readArray ref 0
-        U.writeArray ref 0 $! ld + i
+        !ld <- readLoad ref
+        writeLoad ref $! ld + i
+    bumpDel ref i = do
+        !ld <- readDelLoad ref
+        writeDelLoad ref $! ld + i
 
     !b0 = whichBucket h sz
 
@@ -558,7 +584,7 @@ delete' (HashTable sz loadRef delRef hashes keys values) clearOut k h = do
                             -- only works if we were planning on writing the
                             -- new element here.
                             when (clearOut || not samePlace) $ do
-                                bump delRef 1
+                                bumpDel loadRef 1
                                 U.writeArray hashes idx deletedMarker
                                 writeArray keys idx undefined
                                 writeArray values idx undefined
