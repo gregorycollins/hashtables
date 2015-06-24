@@ -1,5 +1,6 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE RankNTypes  #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module Main where
 
