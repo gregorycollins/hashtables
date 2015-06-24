@@ -59,6 +59,19 @@ class HashTable h where
     -- | Creates a new hash table sized to hold @n@ elements. /O(n)/.
     newSized :: Int -> ST s (h s k v)
 
+    -- | Generalized update. Given a key /k/, and a user function /f/, calls:
+    --
+    --   - `f Nothing` if the key did not exist in the hash table
+    --   - `f (Just v)` otherwise
+    --
+    -- If the user function returns @(Nothing, _)@, then the value is deleted
+    -- from the hash table. Otherwise the mapping for /k/ is inserted or
+    -- replaced with the provided value.
+    --
+    -- Returns the second part of the tuple returned by /f/.
+    mutate :: (Eq k, Hashable k) =>
+              h s k v -> k -> (Maybe v -> (Maybe v, a)) -> ST s a
+
     -- | Inserts a key/value mapping into a hash table, replacing any existing
     -- mapping for that key.
     --

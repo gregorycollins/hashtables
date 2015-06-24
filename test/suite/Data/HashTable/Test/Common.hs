@@ -11,7 +11,9 @@ module Data.HashTable.Test.Common
   ) where
 
 ------------------------------------------------------------------------------
+import           Control.Applicative                  (pure, (<|>))
 import           Control.Monad                        (foldM_, liftM, when)
+import qualified Control.Monad                        as Monad
 import           Data.IORef
 import           Data.List                            hiding (delete, insert,
                                                        lookup)
@@ -60,6 +62,12 @@ announce _ _ = return ()
 #endif
 
 
+------------------------------------------------------------------------------
+announceQ :: Show a => String -> a -> PropertyM IO ()
+announceQ nm x = run $ announce nm x
+
+
+------------------------------------------------------------------------------
 assertEq :: (Eq a, Show a) =>
             String -> a -> a -> PropertyM IO ()
 assertEq s expected got =
@@ -93,6 +101,7 @@ tests prefix dummyArg = testGroup prefix $ map f ts
          , SomeTest testDelete
          , SomeTest testNastyFullLookup
          , SomeTest testForwardSearch3
+         , SomeTest testMutate
          ]
 
 
@@ -108,7 +117,7 @@ testFromListToList prefix dummyArg =
     prop :: GenIO -> [(Int, Int)] -> PropertyM IO ()
     prop rng origL = do
         let l = V.toList $ shuffle rng $ V.fromList $ dedupe origL
-        run $ announce "fromListToList" l
+        announceQ "fromListToList" l
         ht <- run $ fromList l
         l' <- run $ toList ht
         assertEq "fromList . toList == id" (sort l) (sort l')
@@ -126,7 +135,7 @@ testInsert prefix dummyArg =
   where
     prop :: GenIO -> ([(Int, Int)], (Int,Int)) -> PropertyM IO ()
     prop rng o@(origL, (k,v)) = do
-        run $ announce "insert" o
+        announceQ "insert" o
         let l = V.toList $ shuffle rng $ V.fromList $ remove k $ dedupe origL
         assert $ all (\t -> fst t /= k) l
 
@@ -152,7 +161,7 @@ testInsert2 prefix dummyArg =
   where
     prop :: GenIO -> ([(Int, Int)], (Int,Int,Int)) -> PropertyM IO ()
     prop rng o@(origL, (k,v,v2)) = do
-        run $ announce "insert2" o
+        announceQ "insert2" o
         let l = V.toList $ shuffle rng $ V.fromList $ dedupe origL
         ht   <- run $ fromList l
 
@@ -176,7 +185,7 @@ testNewAndInsert prefix dummyArg =
   where
     prop :: (Int,Int,Int) -> PropertyM IO ()
     prop o@(k,v,v2) = do
-        run $ announce "newAndInsert" o
+        announceQ "newAndInsert" o
         ht <- run new
 
         nothing <- run $ lookup ht k
@@ -223,7 +232,7 @@ testGrowTable prefix dummyArg =
 
     prop :: Int -> PropertyM IO ()
     prop n = do
-        run $ announce "growTable" n
+        announceQ "growTable" n
         ht <- run $ go n
         i <- liftM head $ run $ sample' $ choose (0,n-1)
 
@@ -269,7 +278,7 @@ testDelete prefix dummyArg =
 
     prop :: Int -> PropertyM IO ()
     prop n = do
-        run $ announce "delete" n
+        announceQ "delete" n
 
         ht <- run $ go n
 
@@ -282,6 +291,34 @@ testDelete prefix dummyArg =
 
         ct <- run $ foldM f (0::Int, 0::Int) ht
         assertEq "max + count" (n-1,n-1) ct
+        forceType dummyArg ht
+
+
+------------------------------------------------------------------------------
+testMutate :: HashTest
+testMutate prefix dummyArg = testProperty (prefix ++ "/mutate") $
+                             monadicIO $ forAllM arbitrary prop
+  where
+    prop :: ([(Int, Int)],  [(Int, [Int])]) -> PropertyM IO ()
+    prop o@(seedList, testList) = do
+      announceQ "mutate" o
+      ht <- run $ fromList seedList
+      Monad.mapM_ (testOne ht) testList
+
+
+    upd n v = (fmap (+ n) v <|> pure n, ())
+
+    testOne ht (k, values) = do
+        pre . not . null $ values
+        run $ mutate ht k (const (Nothing, ()))
+        out1 <- run $ lookup ht k
+        assertEq ("mutate deletes " ++ show k) Nothing out1
+        out2 <- run $ do
+            Monad.mapM_ (mutate ht k . upd) values
+            (Just v) <- lookup ht k
+            return $! v
+        let s = sum values
+        assertEq "mutate inserts correctly folded list value" s out2
         forceType dummyArg ht
 
 

@@ -129,6 +129,7 @@ instance C.HashTable HashTable where
     foldM           = foldM
     mapM_           = mapM_
     computeOverhead = computeOverhead
+    mutate          = error "unimplemented"
 
 
 ------------------------------------------------------------------------------

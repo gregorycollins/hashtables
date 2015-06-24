@@ -47,6 +47,7 @@ module Data.HashTable.IO
   , insert
   , delete
   , lookup
+  , mutate
   , fromList
   , fromListWithSizeHint
   , toList
@@ -149,6 +150,20 @@ lookup h k = stToIO $ C.lookup h k
                          LinearHashTable k v -> k -> IO (Maybe v) #-}
 {-# SPECIALIZE INLINE lookup :: (Eq k, Hashable k) =>
                          CuckooHashTable k v -> k -> IO (Maybe v) #-}
+
+
+------------------------------------------------------------------------------
+-- | See the documentation for this function in "Data.HashTable.Class#v:mutate".
+mutate   :: (C.HashTable h, Eq k, Hashable k) =>
+            IOHashTable h k v -> k -> (Maybe v -> (Maybe v, a)) -> IO a
+mutate h k f = stToIO $ C.mutate h k f
+{-# INLINE mutate #-}
+{-# SPECIALIZE INLINE mutate :: (Eq k, Hashable k) =>
+                         BasicHashTable  k v -> k -> (Maybe v -> (Maybe v, a)) -> IO a #-}
+{-# SPECIALIZE INLINE mutate :: (Eq k, Hashable k) =>
+                         LinearHashTable k v -> k -> (Maybe v -> (Maybe v, a)) -> IO a #-}
+{-# SPECIALIZE INLINE mutate :: (Eq k, Hashable k) =>
+                         CuckooHashTable k v -> k -> (Maybe v -> (Maybe v, a)) -> IO a #-}
 
 
 ------------------------------------------------------------------------------
