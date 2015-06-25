@@ -116,7 +116,7 @@ testFromListToList prefix dummyArg =
   where
     prop :: GenIO -> [(Int, Int)] -> PropertyM IO ()
     prop rng origL = do
-        let l = V.toList $ shuffle rng $ V.fromList $ dedupe origL
+        let l = V.toList $ shuffleVector rng $ V.fromList $ dedupe origL
         announceQ "fromListToList" l
         ht <- run $ fromList l
         l' <- run $ toList ht
@@ -136,7 +136,7 @@ testInsert prefix dummyArg =
     prop :: GenIO -> ([(Int, Int)], (Int,Int)) -> PropertyM IO ()
     prop rng o@(origL, (k,v)) = do
         announceQ "insert" o
-        let l = V.toList $ shuffle rng $ V.fromList $ remove k $ dedupe origL
+        let l = V.toList $ shuffleVector rng $ V.fromList $ remove k $ dedupe origL
         assert $ all (\t -> fst t /= k) l
 
         ht <- run $ fromList l
@@ -162,7 +162,7 @@ testInsert2 prefix dummyArg =
     prop :: GenIO -> ([(Int, Int)], (Int,Int,Int)) -> PropertyM IO ()
     prop rng o@(origL, (k,v,v2)) = do
         announceQ "insert2" o
-        let l = V.toList $ shuffle rng $ V.fromList $ dedupe origL
+        let l = V.toList $ shuffleVector rng $ V.fromList $ dedupe origL
         ht   <- run $ fromList l
 
         run $ insert ht k v
@@ -512,8 +512,8 @@ remove m l = go id l
 
 
 ------------------------------------------------------------------------------
-shuffle :: GenIO -> Vector k -> Vector k
-shuffle rng v = if V.null v then v else V.modify go v
+shuffleVector :: GenIO -> Vector k -> Vector k
+shuffleVector rng v = if V.null v then v else V.modify go v
   where
     !n = V.length v
 
