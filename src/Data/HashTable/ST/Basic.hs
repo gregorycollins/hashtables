@@ -164,7 +164,7 @@ instance C.HashTable HashTable where
     foldM           = foldM
     mapM_           = mapM_
     computeOverhead = computeOverhead
-    mutate          = error "unimplemented"
+    mutate          = mutate
 
 
 ------------------------------------------------------------------------------
@@ -298,6 +298,46 @@ insert htRef !k !v = do
     !h = hash k
     !he = hashToElem h
 {-# INLINE insert #-}
+
+
+------------------------------------------------------------------------------
+-- | See the documentation for this function in
+-- "Data.HashTable.Class#v:alter".
+mutate :: (Eq k, Hashable k) =>
+          (HashTable s k v)
+       -> k
+       -> (Maybe v -> (Maybe v, a))
+       -> ST s a
+mutate htRef !k !f = do
+    ht@(HashTable _ !loadRef hashes keys values) <- readRef htRef
+    debug $ "mutate h=" ++ show h
+    triple@(!found, !b0, !b1) <- findSafeSlots ht k h
+    debug $ "findSafeSlots returned " ++ show triple
+    !he0 <- U.readArray hashes b0
+    !mv <- if found
+              then fmap Just $ readArray values b1
+              else return Nothing
+    let (!mv', !result) = f mv
+    case (mv, mv') of
+        (Nothing, Nothing) -> return ()
+        (Just _, Nothing)  -> do
+            debug $ "mutate: deleting element at b1=" ++ show b1
+            deleteFromSlot ht b1
+        (Nothing, Just v') -> do
+            debug $ "mutate: inserting element he=" ++ show he
+                    ++ " b0=" ++ show b0
+            insertIntoSlot ht b0 he k v'
+            ht' <- checkOverflow ht
+            writeRef htRef ht'
+        (Just _, Just v')  -> do
+            debug $ "mutate: overwriting value at b1=" ++ show b1
+            when (b0 /= b1) $ deleteFromSlot ht b1
+            insertIntoSlot ht b0 he k v'
+    return result
+  where
+    !h     = hash k
+    !he    = hashToElem h
+{-# INLINE mutate #-}
 
 
 ------------------------------------------------------------------------------
