@@ -288,12 +288,11 @@ insert htRef !k !v = do
     slots@(SlotFindResponse foundInt b0 b1) <- findSafeSlots ht k h
     let found = trueInt foundInt
     debug $ "insert: findSafeSlots returned " ++ show slots
-    when (found && (b0 /= b1)) $
-        deleteFromSlot ht b1
+    when (found && (b0 /= b1)) $ deleteFromSlot ht b1
     insertIntoSlot ht b0 he k v
     ht' <- checkOverflow ht
     writeRef htRef ht'
-        
+
   where
     !h = hash k
     !he = hashToElem h
@@ -566,7 +565,7 @@ findSafeSlots (HashTable !sz _ hashes keys _) k h = do
           -- the table, because every insert is going to be O(n).
           then do
             let !sl = fp `mappend` (Slot (error "impossible"))
-            return $ SlotFindResponse 0 (_slot sl) (_slot sl)
+            return $! SlotFindResponse 0 (_slot sl) (_slot sl)
           else do
             -- because the table isn't full, we know that there must be either
             -- an empty or a deleted marker somewhere in the table. Assert this
@@ -579,7 +578,7 @@ findSafeSlots (HashTable !sz _ hashes keys _) k h = do
               then do
                   let pl = fp `mappend` (Slot idx)
                   debug $ "empty, returning " ++ show pl
-                  return $ SlotFindResponse 0 (_slot pl) (_slot pl)
+                  return $! SlotFindResponse 0 (_slot pl) (_slot pl)
               else do
                 let !wrap' = haveWrapped fp idx
                 if recordIsDeleted h0
@@ -596,7 +595,7 @@ findSafeSlots (HashTable !sz _ hashes keys _) k h = do
                           then do
                             debug $ "found at " ++ show idx
                             let !sl = fp `mappend` (Slot idx)
-                            return $ SlotFindResponse 1 (_slot sl) idx
+                            return $! SlotFindResponse 1 (_slot sl) idx
                           else go fp (idx + 1) wrap'
                       else go fp (idx + 1) wrap'
 
@@ -659,14 +658,17 @@ maxLoad = 0.82
 emptyMarker :: Elem
 emptyMarker = 0
 
+
 ------------------------------------------------------------------------------
 deletedMarker :: Elem
 deletedMarker = 1
 
 
 ------------------------------------------------------------------------------
+{-# INLINE trueInt #-}
 trueInt :: Int -> Bool
-trueInt = (== 1)
+trueInt (I# i#) = tagToEnum# i#
+
 
 ------------------------------------------------------------------------------
 {-# INLINE recordIsEmpty #-}
@@ -683,7 +685,17 @@ recordIsDeleted = (== deletedMarker)
 ------------------------------------------------------------------------------
 {-# INLINE recordIsFilled #-}
 recordIsFilled :: Elem -> Bool
-recordIsFilled el = not (recordIsEmpty el) && not (recordIsDeleted el)
+recordIsFilled !el = tagToEnum# isFilled#
+  where
+    !el# = U.elemToInt# el
+    !deletedMarker# = U.elemToInt# deletedMarker
+    !emptyMarker# = U.elemToInt# emptyMarker
+#if __GLASGOW_HASKELL__ >= 708
+    !isFilled# = (el# /=# deletedMarker#) `andI#` (el# /=# emptyMarker#)
+#else
+    !delOrEmpty# = mask# el# deletedMarker# `orI#` mask# el# emptyMarker#
+    !isFilled# = 1# `andI#` notI# delOrEmpty#
+#endif
 
 
 ------------------------------------------------------------------------------
