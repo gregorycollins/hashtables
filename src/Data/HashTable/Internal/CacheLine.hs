@@ -56,7 +56,7 @@ foreign import ccall unsafe "line_search"
 foreign import ccall unsafe "line_search_2"
   c_lineSearch_2 :: Ptr a -> CInt -> CUShort -> CUShort -> IO CInt
 
-foreign import ccall unsafe "line_search_2"
+foreign import ccall unsafe "line_search_3"
   c_lineSearch_3 :: Ptr a -> CInt -> CUShort -> CUShort -> CUShort -> IO CInt
 
 foreign import ccall unsafe "forward_search_2"
