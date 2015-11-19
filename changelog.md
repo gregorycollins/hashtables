@@ -1,5 +1,11 @@
 # Hashtables changelog
 
+## 1.2.1.0
+
+  - Fixed an FFI import typo bug
+    (https://github.com/gregorycollins/hashtables/pull/27), thanks to Thijs
+    Alkemade for the fix.
+
 ## 1.2.0.2
 
   - Fixed serious bug (https://github.com/gregorycollins/hashtables/issues/24)
