@@ -25,8 +25,10 @@ import           Test.Framework
 import           Test.Framework.Providers.HUnit
 import           Test.Framework.Providers.QuickCheck2
 import           Test.HUnit                           (assertFailure)
-import           Test.QuickCheck
-import           Test.QuickCheck.Monadic
+import           Test.QuickCheck                      (arbitrary, choose,
+                                                       sample')
+import           Test.QuickCheck.Monadic              (PropertyM, assert,
+                                                       forAllM, monadicIO, run)
 ------------------------------------------------------------------------------
 import qualified Data.HashTable.Class                 as C
 import           Data.HashTable.Internal.Utils        (unsafeIOToST)
