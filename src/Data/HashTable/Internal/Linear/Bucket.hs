@@ -10,6 +10,8 @@ module Data.HashTable.Internal.Linear.Bucket
   snoc,
   size,
   lookup,
+  lookupIndex,
+  elemAt,
   delete,
   toList,
   fromList,
@@ -229,6 +231,37 @@ lookup bucketKey !k | keyIsEmpty bucketKey = return Nothing
                     return $! Just v
                   else go (i-1)
 
+------------------------------------------------------------------------------
+-- note: search in reverse order! We prefer recently snoc'd keys.
+lookupIndex :: (Eq k) => Bucket s k v -> k -> ST s (Maybe Int)
+lookupIndex bucketKey !k
+  | keyIsEmpty bucketKey = return Nothing
+  | otherwise = lookup' $ fromKey bucketKey
+  where
+    lookup' (Bucket _ hwRef keys values) = do
+        hw <- readSTRef hwRef
+        go (hw-1)
+      where
+        go !i
+            | i < 0 = return Nothing
+            | otherwise = do
+                k' <- readArray keys i
+                if k == k'
+                  then return (Just i)
+                  else go (i-1)
+
+elemAt :: Bucket s k v -> Int -> ST s (Maybe (k,v))
+elemAt bucketKey ix
+  | keyIsEmpty bucketKey = return Nothing
+  | otherwise = lookup' $ fromKey bucketKey
+  where
+    lookup' (Bucket _ hwRef keys values) = do
+        hw <- readSTRef hwRef
+        if 0 <= ix && ix < hw
+          then do k <- readArray keys ix
+                  v <- readArray values ix
+                  return (Just (k,v))
+          else return Nothing
 
 ------------------------------------------------------------------------------
 {-# INLINE toList #-}

@@ -163,6 +163,8 @@ instance C.HashTable HashTable where
     lookup          = lookup
     foldM           = foldM
     mapM_           = mapM_
+    lookupIndex     = lookupIndex
+    nextByIndex     = nextByIndex
     computeOverhead = computeOverhead
 
 
@@ -660,3 +662,68 @@ debug s = unsafeIOToST (putStrLn s)
 #else
 debug _ = return ()
 #endif
+
+lookupIndex :: (Eq k, Hashable k) => HashTable s k v -> k -> ST s (Maybe Word)
+lookupIndex htRef !k = do
+    ht <- readRef htRef
+    lookup' ht
+  where
+    lookup' (HashTable sz _ hashes keys values) = do
+        let !b = whichBucket h sz
+        debug $ "lookup h=" ++ show h ++ " sz=" ++ show sz ++ " b=" ++ show b
+        go b 0 sz
+
+      where
+        !h  = hash k
+        !he = hashToElem h
+
+        go !b !start !end = {-# SCC "lookupIndex/go" #-} do
+            debug $ concat [ "lookupIndex/go: "
+                           , show b
+                           , "/"
+                           , show start
+                           , "/"
+                           , show end
+                           ]
+            idx <- forwardSearch2 hashes b end he emptyMarker
+            debug $ "forwardSearch2 returned " ++ show idx
+            if (idx < 0 || idx < start || idx >= end)
+               then return Nothing
+               else do
+                 h0  <- U.readArray hashes idx
+                 debug $ "h0 was " ++ show h0
+
+                 if recordIsEmpty h0
+                   then do
+                       debug $ "record empty, returning Nothing"
+                       return Nothing
+                   else do
+                     k' <- readArray keys idx
+                     if k == k'
+                       then do
+                         debug $ "value found at " ++ show idx
+                         v <- readArray values idx
+                         return $! (Just $! fromIntegral idx)
+                       else do
+                         debug $ "value not found, recursing"
+                         if idx < b
+                           then go (idx + 1) (idx + 1) b
+                           else go (idx + 1) start end
+{-# INLINE lookupIndex #-}
+
+nextByIndex :: HashTable s k v -> Word -> ST s (Maybe (Word, k, v))
+nextByIndex htRef i0 = readRef htRef >>= work
+  where
+    work (HashTable sz _ hashes keys values) = go (fromIntegral i0)
+      where
+        go i | i >= sz = return Nothing
+             | otherwise = do
+            h <- U.readArray hashes i
+            if recordIsEmpty h || recordIsDeleted h
+              then go (i+1)
+              else do
+                k <- readArray keys i
+                v <- readArray values i
+                let !i' = fromIntegral i
+                return (Just (i', k, v))
+{-# INLINE nextByIndex #-}

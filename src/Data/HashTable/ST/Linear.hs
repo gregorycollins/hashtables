@@ -127,6 +127,8 @@ instance C.HashTable HashTable where
     lookup          = lookup
     foldM           = foldM
     mapM_           = mapM_
+    lookupIndex     = lookupIndex
+    nextByIndex     = nextByIndex
     computeOverhead = computeOverhead
 
 
@@ -459,3 +461,57 @@ debug _ = return ()
 #endif
 #endif
 
+
+------------------------------------------------------------------------------
+-- | See the documentation for this function in
+-- "Data.HashTable.Class#v:lookupIndex".
+lookupIndex :: (Eq k, Hashable k) => HashTable s k v -> k -> ST s (Maybe Word)
+lookupIndex htRef !k = readRef htRef >>= work
+  where
+    work (HashTable lvl splitptr buckets) = do
+        let h0 = hashKey lvl splitptr k
+        bucket <- readArray buckets h0
+        mbIx <- Bucket.lookupIndex bucket k
+        return $! do ix <- mbIx
+                     Just $! encodeIndex lvl h0 ix
+{-# INLINE lookupIndex #-}
+
+encodeIndex :: Int -> Int -> Int -> Word
+encodeIndex lvl bucketIx elemIx =
+  fromIntegral bucketIx `Data.Bits.shiftL` indexOffset lvl .|.
+  fromIntegral elemIx
+{-# INLINE encodeIndex #-}
+
+decodeIndex :: Int -> Word -> (Int, Int)
+decodeIndex lvl ix =
+  ( fromIntegral (ix `Data.Bits.shiftR` offset)
+  , fromIntegral ( (bit offset - 1) .&. ix )
+  )
+  where offset = indexOffset lvl
+{-# INLINE decodeIndex #-}
+
+indexOffset :: Int -> Int
+indexOffset lvl = finiteBitSize (0 :: Word) - lvl
+{-# INLINE indexOffset #-}
+
+nextByIndex :: HashTable s k v -> Word -> ST s (Maybe (Word,k,v))
+nextByIndex htRef !k = readRef htRef >>= work
+  where
+    work (HashTable lvl _ buckets) = do
+        let (h0,ix) = decodeIndex lvl k
+        go h0 ix
+
+      where
+        bucketN = power2 lvl
+        go h ix
+          | h < 0 || bucketN <= h = return Nothing
+          | otherwise = do
+              bucket <- readArray buckets h
+              mb     <- Bucket.elemAt bucket ix
+              case mb of
+                Just (k',v) ->
+                  let !ix' = encodeIndex lvl h ix
+                  in return (Just (ix', k', v))
+                Nothing -> go (h+1) 0
+
+{-# INLINE nextByIndex #-}

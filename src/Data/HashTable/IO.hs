@@ -53,6 +53,8 @@ module Data.HashTable.IO
   , mapM_
   , foldM
   , computeOverhead
+  , lookupIndex
+  , nextByIndex
   ) where
 
 
@@ -150,6 +152,31 @@ lookup h k = stToIO $ C.lookup h k
 {-# SPECIALIZE INLINE lookup :: (Eq k, Hashable k) =>
                          CuckooHashTable k v -> k -> IO (Maybe v) #-}
 
+------------------------------------------------------------------------------
+-- | See the documentation for this function in "Data.HashTable.Class#v:lookupIndex".
+lookupIndex   :: (C.HashTable h, Eq k, Hashable k) =>
+                 IOHashTable h k v -> k -> IO (Maybe Word)
+lookupIndex h k = stToIO $ C.lookupIndex h k
+{-# INLINE lookupIndex #-}
+{-# SPECIALIZE INLINE lookupIndex :: (Eq k, Hashable k) =>
+                         BasicHashTable  k v -> k -> IO (Maybe Word) #-}
+{-# SPECIALIZE INLINE lookupIndex :: (Eq k, Hashable k) =>
+                         LinearHashTable k v -> k -> IO (Maybe Word) #-}
+{-# SPECIALIZE INLINE lookupIndex :: (Eq k, Hashable k) =>
+                         CuckooHashTable k v -> k -> IO (Maybe Word) #-}
+
+------------------------------------------------------------------------------
+-- | See the documentation for this function in "Data.HashTable.Class#v:nextByIndex".
+nextByIndex   :: (C.HashTable h, Eq k, Hashable k) =>
+                 IOHashTable h k v -> Word -> IO (Maybe (Word,k,v))
+nextByIndex h k = stToIO $ C.nextByIndex h k
+{-# INLINE nextByIndex #-}
+{-# SPECIALIZE INLINE nextByIndex :: (Eq k, Hashable k) =>
+                         BasicHashTable  k v -> Word -> IO (Maybe (Word,k,v)) #-}
+{-# SPECIALIZE INLINE nextByIndex :: (Eq k, Hashable k) =>
+                         LinearHashTable k v -> Word -> IO (Maybe (Word,k,v)) #-}
+{-# SPECIALIZE INLINE nextByIndex :: (Eq k, Hashable k) =>
+                         CuckooHashTable k v -> Word -> IO (Maybe (Word,k,v)) #-}
 
 ------------------------------------------------------------------------------
 -- | See the documentation for this function in
