@@ -68,6 +68,7 @@ module Data.HashTable.ST.Cuckoo
   , delete
   , lookup
   , insert
+  , mutate
   , mapM_
   , foldM
   ) where
@@ -129,7 +130,7 @@ instance C.HashTable HashTable where
     foldM           = foldM
     mapM_           = mapM_
     computeOverhead = computeOverhead
-    mutate          = error "unimplemented"
+    mutate          = mutate
 
 
 ------------------------------------------------------------------------------
@@ -161,6 +162,20 @@ newSized n = do
 -- "Data.HashTable.Class#v:insert".
 insert :: (Eq k, Hashable k) => HashTable s k v -> k -> v -> ST s ()
 insert ht !k !v = readRef ht >>= \h -> insert' h k v >>= writeRef ht
+
+
+------------------------------------------------------------------------------
+mutate :: (Eq k, Hashable k) =>
+          HashTable s k v
+       -> k
+       -> (Maybe v -> (Maybe v, a))
+       -> ST s a
+mutate htRef !k !f = do
+    ht <- readRef htRef
+    (newHt, a) <- mutate' ht k f
+    writeRef htRef newHt
+    return a
+{-# INLINE mutate #-}
 
 
 ------------------------------------------------------------------------------
@@ -389,6 +404,101 @@ insert' ht k v = do
     debug "insert': end"
     return z
 {-# INLINE insert #-}
+
+
+------------------------------------------------------------------------------
+mutate' :: (Eq k, Hashable k) =>
+           HashTable_ s k v
+        -> k
+        -> (Maybe v -> (Maybe v, a))
+        -> ST s (HashTable_ s k v, a)
+mutate' ht@(HashTable sz _ hashes keys values _) !k !f = do
+    !(maybeVal, idx, hashCode) <- lookupSlot
+    case (maybeVal, f maybeVal) of
+        (Nothing, (Nothing, a)) -> return (ht, a)
+        (Just v, (Just v', a)) -> do
+            writeArray values idx v'
+            return (ht, a)
+        (Just v, (Nothing, a)) -> do
+            deleteFromSlot ht idx
+            return (ht, a)
+        (Nothing, (Just v', a)) -> do
+            newHt <- insertNew v'
+            return (newHt, a)
+
+  where
+    h1 = hash1 k
+    h2 = hash2 k
+
+    b1 = whichLine h1 sz
+    b2 = whichLine h2 sz
+    
+    he1 = hashToElem h1
+    he2 = hashToElem h2
+
+    lookupSlot = do
+        idx1 <- searchOne keys hashes k b1 he1
+        if idx1 >= 0
+          then do
+            v <- readArray values idx1
+            return (Just v, idx1, h1)
+          else do
+            idx2 <- searchOne keys hashes k b2 he2
+            if idx2 >= 0
+              then do
+                v <- readArray values idx2
+                return (Just v, idx2, h2)
+              else do
+                return (Nothing, -1, -1)
+
+    insertNew v = do
+        idxE1 <- cacheLineSearch hashes b1 emptyMarker
+        if idxE1 >= 0
+          then do
+            insertIntoSlot ht idxE1 he1 k v
+            return ht
+          else do
+            idxE2 <- cacheLineSearch hashes b2 emptyMarker
+            if idxE2 >= 0
+              then do
+                insertIntoSlot ht idxE2 he2 k v
+                return ht
+              else do
+                result <- cuckooOrFail ht h1 h2 b1 b2 k v
+                maybe (return ht)
+                      (\(k', v') -> do
+                          newHt <- grow ht k v
+                          return newHt)
+                      result
+{-# INLINE mutate' #-}
+
+
+------------------------------------------------------------------------------
+deleteFromSlot :: (Eq k, Hashable k) =>
+                  HashTable_ s k v
+               -> Int
+               -> ST s ()
+deleteFromSlot ht@(HashTable _ _ hashes keys values _) idx = do
+    U.writeArray hashes idx emptyMarker
+    writeArray keys idx undefined
+    writeArray values idx undefined
+{-# INLINE deleteFromSlot #-}
+
+
+------------------------------------------------------------------------------
+insertIntoSlot :: (Eq k, Hashable k) =>
+                  HashTable_ s k v
+               -> Int
+               -> Elem
+               -> k
+               -> v
+               -> ST s ()
+insertIntoSlot ht@(HashTable _ _ hashes keys values _) idx he k v = do
+    U.writeArray hashes idx he
+    writeArray keys idx k
+    writeArray values idx v
+{-# INLINE insertIntoSlot #-}
+
 
 
 ------------------------------------------------------------------------------
