@@ -1,5 +1,8 @@
 # Hashtables changelog
 
+## 1.2.1.1
+  - Bumped vector bounds.
+
 ## 1.2.1.0
 
   - Fixed an FFI import typo bug
