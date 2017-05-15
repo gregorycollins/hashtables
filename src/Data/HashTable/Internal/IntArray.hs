@@ -71,7 +71,7 @@ elemMask = 0xffff
 
 ------------------------------------------------------------------------------
 wordSizeInBytes :: Int
-wordSizeInBytes = bitSize (0::Elem) `div` 8
+wordSizeInBytes = finiteBitSize (0::Elem) `div` 8
 
 
 ------------------------------------------------------------------------------

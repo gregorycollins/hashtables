@@ -122,7 +122,7 @@ newtype HashTable s k v = HT (STRef s (HashTable_ s k v))
 type SizeRefs s = A.MutableByteArray s
 
 intSz :: Int
-intSz = (bitSize (0::Int) `div` 8)
+intSz = (finiteBitSize (0::Int) `div` 8)
 
 readLoad :: SizeRefs s -> ST s Int
 readLoad = flip A.readByteArray 0
@@ -365,7 +365,7 @@ computeOverhead htRef = readRef htRef >>= work
         let k = fromIntegral ld / sz
         return $ constOverhead/sz + (2 + 2*ws*(1-k)) / (k * ws)
       where
-        ws = fromIntegral $! bitSize (0::Int) `div` 8
+        ws = fromIntegral $! finiteBitSize (0::Int) `div` 8
         sz = fromIntegral sz'
         -- Change these if you change the representation
         constOverhead = 14

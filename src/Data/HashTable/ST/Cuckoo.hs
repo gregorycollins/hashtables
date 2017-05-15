@@ -179,7 +179,7 @@ computeOverhead htRef = readRef htRef >>= work
         return $! fromIntegral (oh::Int) / fromIntegral nFilled
 
       where
-        hashCodesPerWord = (bitSize (0 :: Int)) `div` 16
+        hashCodesPerWord = (finiteBitSize (0 :: Int)) `div` 16
         totSz = numElemsInCacheLine * sz
 
         f !a _ = return $! a+1
