@@ -702,7 +702,6 @@ lookupIndex htRef !k = do
                      if k == k'
                        then do
                          debug $ "value found at " ++ show idx
-                         v <- readArray values idx
                          return $! (Just $! fromIntegral idx)
                        else do
                          debug $ "value not found, recursing"
