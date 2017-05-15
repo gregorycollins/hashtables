@@ -41,7 +41,7 @@ import           Control.Monad.ST                 (unsafeIOToST)
 
 ------------------------------------------------------------------------------
 wordSize :: Int
-wordSize = bitSize (0::Int)
+wordSize = finiteBitSize (0::Int)
 
 
 cacheLineSize :: Int
