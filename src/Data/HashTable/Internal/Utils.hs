@@ -51,7 +51,7 @@ cacheLineSize = 64
 numElemsInCacheLine :: Int
 numElemsInCacheLine = z
   where
-    !z = cacheLineSize `div` (bitSize (0::Elem) `div` 8)
+    !z = cacheLineSize `div` (finiteBitSize (0::Elem) `div` 8)
 
 
 -- | What you have to mask an integer index by to tell if it's

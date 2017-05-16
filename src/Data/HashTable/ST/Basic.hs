@@ -668,7 +668,7 @@ lookupIndex htRef !k = do
     ht <- readRef htRef
     lookup' ht
   where
-    lookup' (HashTable sz _ hashes keys values) = do
+    lookup' (HashTable sz _ hashes keys _values) = do
         let !b = whichBucket h sz
         debug $ "lookup h=" ++ show h ++ " sz=" ++ show sz ++ " b=" ++ show b
         go b 0 sz

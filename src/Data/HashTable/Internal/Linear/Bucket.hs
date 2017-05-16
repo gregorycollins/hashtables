@@ -238,7 +238,7 @@ lookupIndex bucketKey !k
   | keyIsEmpty bucketKey = return Nothing
   | otherwise = lookup' $ fromKey bucketKey
   where
-    lookup' (Bucket _ hwRef keys values) = do
+    lookup' (Bucket _ hwRef keys _values) = do
         hw <- readSTRef hwRef
         go (hw-1)
       where
