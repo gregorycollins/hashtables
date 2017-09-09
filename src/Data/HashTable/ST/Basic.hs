@@ -87,6 +87,7 @@ module Data.HashTable.ST.Basic
   , delete
   , lookup
   , insert
+  , mutate
   , mapM_
   , foldM
   , computeOverhead

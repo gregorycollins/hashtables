@@ -16,7 +16,6 @@ import qualified Data.ByteString                                    as B
 import qualified Data.ByteString.Base16                             as B16
 import           Data.Hashable
 import qualified Data.HashMap.Strict                                as UC
-import qualified Data.HashTable                                     as H
 import qualified Data.HashTable.IO                                  as IOH
 import           Data.IORef
 import qualified Data.Map                                           as Map
@@ -54,21 +53,6 @@ hashMap = setupData UC.empty f
                  (Lookup k)   -> let !_  = UC.lookup k m in m
                  (Delete k)   -> let !m' = UC.delete k m in m'
 {-# INLINE hashMap #-}
-
-
-------------------------------------------------------------------------------
-hashTable :: (Hashable k, Eq k) => DataStructure (Operation k)
-hashTable = setupDataIO (const (H.new (==) (toEnum . (.&. 0x7fffffff) . hash))) f
-  where
-    f !m !op = case op of
-                 (Insert k v) -> H.update m k v >> return m
-                 (Lookup k)   -> do
-                         !_ <- H.lookup m k
-                         return m
-                 (Delete k)   -> do
-                         !_ <- H.delete m k
-                         return m
-{-# INLINE hashTable #-}
 
 
 ------------------------------------------------------------------------------
@@ -159,7 +143,6 @@ loadConsecutiveIntegersWorkload' size = do
 
 ------------------------------------------------------------------------------
 testStructures = [ ("Data.Map"             , dataMap        )
-                 , ("Data.Hashtable"       , hashTable      )
                  , ("Data.HashMap"         , hashMap        )
                  , ("Data.BasicHashTable"  , basicHashTable )
                  , ("Data.LinearHashTable" , linearHashTable)
@@ -167,14 +150,12 @@ testStructures = [ ("Data.Map"             , dataMap        )
                  ]
 
 intStructures = [ ("Data.Map"            , dataMap        )
-                , ("Data.Hashtable"      , hashTable      )
                 , ("Data.HashMap"        , hashMap        )
                 , ("Data.BasicHashTable" , basicHashTable )
                 , ("Data.CuckooHashTable", cuckooHashTable)
                 ]
 
 intStructures' = [ ("Data.Map"            , dataMap        )
-                 , ("Data.Hashtable"      , hashTable      )
                  , ("Data.HashMap"        , hashMap        )
                  , ("Data.BasicHashTable" , basicHashTable )
                  , ("Data.CuckooHashTable", cuckooHashTable)

@@ -83,6 +83,7 @@ module Data.HashTable.ST.Linear
   , delete
   , lookup
   , insert
+  , mutate
   , mapM_
   , foldM
   , computeOverhead
@@ -128,7 +129,7 @@ instance C.HashTable HashTable where
     foldM           = foldM
     mapM_           = mapM_
     computeOverhead = computeOverhead
-    mutate          = error "unimplemented"
+    mutate          = mutate
 
 
 ------------------------------------------------------------------------------
@@ -218,6 +219,30 @@ insert htRef k v = do
             return ht
 {-# INLINE insert #-}
 
+
+------------------------------------------------------------------------------
+mutate :: (Eq k, Hashable k) =>
+          (HashTable s k v)
+       -> k
+       -> (Maybe v -> (Maybe v, a))
+       -> ST s a
+mutate htRef k f = do
+    (ht, a) <- readRef htRef >>= work
+    writeRef htRef ht
+    return a
+  where
+    work ht@(HashTable lvl splitptr buckets) = do
+        let !h0 = hashKey lvl splitptr k
+        bucket <- readArray buckets h0
+        (!bsz, mbk, a) <- Bucket.mutate bucket k f
+        maybe (return ())
+              (writeArray buckets h0)
+              mbk
+        if checkOverflow bsz
+          then do
+            ht' <- split ht
+            return (ht', a)
+          else return (ht, a)
 
 
 ------------------------------------------------------------------------------
