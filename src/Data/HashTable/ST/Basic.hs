@@ -87,6 +87,7 @@ module Data.HashTable.ST.Basic
   , delete
   , lookup
   , insert
+  , mutate
   , mapM_
   , foldM
   , computeOverhead
@@ -166,6 +167,7 @@ instance C.HashTable HashTable where
     lookupIndex     = lookupIndex
     nextByIndex     = nextByIndex
     computeOverhead = computeOverhead
+    mutate          = mutate
 
 
 ------------------------------------------------------------------------------
@@ -215,10 +217,9 @@ delete :: (Hashable k, Eq k) =>
        -> k
        -> ST s ()
 delete htRef k = do
-    debug $ "entered: delete: hash=" ++ show h
     ht <- readRef htRef
-    _  <- delete' ht True k h
-    return ()
+    slots <- findSafeSlots ht k h
+    when (trueInt (_slotFound slots)) $ deleteFromSlot ht (_slotB1 slots)
   where
     !h = hash k
 {-# INLINE delete #-}
@@ -286,34 +287,57 @@ insert :: (Eq k, Hashable k) =>
        -> ST s ()
 insert htRef !k !v = do
     ht <- readRef htRef
-    !ht' <- insert' ht
+    debug $ "insert: h=" ++ show h
+    slots@(SlotFindResponse foundInt b0 b1) <- findSafeSlots ht k h
+    let found = trueInt foundInt
+    debug $ "insert: findSafeSlots returned " ++ show slots
+    when (found && (b0 /= b1)) $ deleteFromSlot ht b1
+    insertIntoSlot ht b0 he k v
+    ht' <- checkOverflow ht
     writeRef htRef ht'
 
   where
-    insert' ht = do
-        debug "insert': calling delete'"
-        b <- delete' ht False k h
-
-        debug $ concat [ "insert': writing h="
-                       , show h
-                       , " he="
-                       , show he
-                       , " b="
-                       , show b
-                       ]
-        U.writeArray hashes b he
-        writeArray keys b k
-        writeArray values b v
-
-        checkOverflow ht
-
-      where
-        !h     = hash k
-        !he    = hashToElem h
-        hashes = _hashes ht
-        keys   = _keys ht
-        values = _values ht
+    !h = hash k
+    !he = hashToElem h
 {-# INLINE insert #-}
+
+
+------------------------------------------------------------------------------
+-- | See the documentation for this function in
+-- "Data.HashTable.Class#v:alter".
+mutate :: (Eq k, Hashable k) =>
+          (HashTable s k v)
+       -> k
+       -> (Maybe v -> (Maybe v, a))
+       -> ST s a
+mutate htRef !k !f = do
+    ht <- readRef htRef
+    let values = _values ht
+    debug $ "mutate h=" ++ show h
+    slots@(SlotFindResponse foundInt b0 b1) <- findSafeSlots ht k h
+    let found = trueInt foundInt
+    debug $ "findSafeSlots returned " ++ show slots
+    !mv <- if found
+              then fmap Just $ readArray values b1
+              else return Nothing
+    let (!mv', !result) = f mv
+    case (mv, mv') of
+        (Nothing, Nothing) -> return ()
+        (Just _, Nothing)  -> do
+            deleteFromSlot ht b1
+        (Nothing, Just v') -> do
+            insertIntoSlot ht b0 he k v'
+            ht' <- checkOverflow ht
+            writeRef htRef ht'
+        (Just _, Just v')  -> do
+            when (b0 /= b1) $
+                deleteFromSlot ht b1
+            insertIntoSlot ht b0 he k v'
+    return result
+  where
+    !h     = hash k
+    !he    = hashToElem h
+{-# INLINE mutate #-}
 
 
 ------------------------------------------------------------------------------
@@ -411,8 +435,6 @@ checkOverflow :: (Eq k, Hashable k) =>
               -> ST s (HashTable_ s k v)
 checkOverflow ht@(HashTable sz ldRef _ _ _) = do
     !ld <- readLoad ldRef
-    let !ld' = ld + 1
-    writeLoad ldRef ld'
     !dl <- readDelLoad ldRef
 
     debug $ concat [ "checkOverflow: sz="
@@ -461,56 +483,54 @@ growTable ht@(HashTable sz _ _ _ _) = do
 
 
 ------------------------------------------------------------------------------
--- Helper data structure for delete'
-data Slot = Slot {
-      _slot       :: {-# UNPACK #-} !Int
-    , _wasDeleted :: {-# UNPACK #-} !Int  -- we use Int because Bool won't
-                                          -- unpack
-    }
-  deriving (Show)
+-- Helper data structure for findSafeSlots
+newtype Slot = Slot { _slot :: Int } deriving (Show)
 
 
 ------------------------------------------------------------------------------
 instance Monoid Slot where
-    mempty = Slot maxBound 0
-    (Slot x1 b1) `mappend` (Slot x2 b2) =
-        if x1 == maxBound then Slot x2 b2 else Slot x1 b1
+    mempty = Slot maxBound
+    (Slot x1) `mappend` (Slot x2) =
+        let !m = mask x1 maxBound
+        in Slot $! (complement m .&. x1) .|. (m .&. x2)
 
 
 ------------------------------------------------------------------------------
--- Returns the slot in the array where it would be safe to write the given key.
-delete' :: (Hashable k, Eq k) =>
-           (HashTable_ s k v)
-        -> Bool
-        -> k
-        -> Int
-        -> ST s Int
-delete' (HashTable sz loadRef hashes keys values) clearOut k h = do
-    debug $ "delete': h=" ++ show h ++ " he=" ++ show he
+-- findSafeSlots return type
+data SlotFindResponse = SlotFindResponse {
+    _slotFound :: {-# UNPACK #-} !Int -- we use Int because Bool won't unpack
+  , _slotB0    :: {-# UNPACK #-} !Int
+  , _slotB1    :: {-# UNPACK #-} !Int
+} deriving (Show)
+
+
+------------------------------------------------------------------------------
+-- Returns ST s (SlotFoundResponse found b0 b1),
+-- where
+--     * found :: Int  - 1 if key-value mapping is already in the table,
+--                       0 otherwise.
+--     * b0    :: Int  - The index of a slot where it would be safe to write
+--                       the given key (if the key is already in the mapping,
+--                       you have to delete it before using this slot).
+--     * b1    :: Int  - The index of a slot where the key currently resides.
+--                       Or, if the key is not in the table, b1 is a slot
+--                       where it is safe to write the key (b1 == b0).
+findSafeSlots :: (Hashable k, Eq k) =>
+                 (HashTable_ s k v)
+              -> k
+              -> Int
+              -> ST s SlotFindResponse
+findSafeSlots (HashTable !sz _ hashes keys _) k h = do
+    debug $ "findSafeSlots: h=" ++ show h ++ " he=" ++ show he
             ++ " sz=" ++ show sz ++ " b0=" ++ show b0
-    pair@(found, slot) <- go mempty b0 False
-    debug $ "go returned " ++ show pair
-
-    let !b' = _slot slot
-
-    when found $ bump loadRef (-1)
-
-    -- bump the delRef lower if we're writing over a deleted marker
-    when (not clearOut && _wasDeleted slot == 1) $ bumpDel loadRef (-1)
-    return b'
+    response <- go mempty b0 False
+    debug $ "go returned " ++ show response
+    return response
 
   where
-    he = hashToElem h
-    bump ref i = do
-        !ld <- readLoad ref
-        writeLoad ref $! ld + i
-    bumpDel ref i = do
-        !ld <- readDelLoad ref
-        writeDelLoad ref $! ld + i
-
+    !he = hashToElem h
     !b0 = whichBucket h sz
-
-    haveWrapped !(Slot fp _) !b = if fp == maxBound
+    haveWrapped !(Slot fp) !b = if fp == maxBound
                                     then False
                                     else b <= fp
 
@@ -536,7 +556,8 @@ delete' (HashTable sz loadRef hashes keys values) clearOut k h = do
                        , show deletedMarker ]
 
         !idx <- forwardSearch3 hashes b sz he emptyMarker deletedMarker
-        debug $ "forwardSearch3 returned " ++ show idx ++ " with sz=" ++ show sz ++ ", b=" ++ show b
+        debug $ "forwardSearch3 returned " ++ show idx
+                ++ " with sz=" ++ show sz ++ ", b=" ++ show b
 
         if wrap && idx >= b0
           -- we wrapped around in the search and didn't find our hash code;
@@ -545,8 +566,9 @@ delete' (HashTable sz loadRef hashes keys values) clearOut k h = do
           --
           -- TODO: if we get in this situation we should probably just rehash
           -- the table, because every insert is going to be O(n).
-          then return $!
-                   (False, fp `mappend` (Slot (error "impossible") 0))
+          then do
+            let !sl = fp `mappend` (Slot (error "impossible"))
+            return $! SlotFindResponse 0 (_slot sl) (_slot sl)
           else do
             -- because the table isn't full, we know that there must be either
             -- an empty or a deleted marker somewhere in the table. Assert this
@@ -557,14 +579,14 @@ delete' (HashTable sz loadRef hashes keys values) clearOut k h = do
 
             if recordIsEmpty h0
               then do
-                  let pl = fp `mappend` (Slot idx 0)
+                  let pl = fp `mappend` (Slot idx)
                   debug $ "empty, returning " ++ show pl
-                  return (False, pl)
+                  return $! SlotFindResponse 0 (_slot pl) (_slot pl)
               else do
                 let !wrap' = haveWrapped fp idx
                 if recordIsDeleted h0
                   then do
-                      let pl = fp `mappend` (Slot idx 1)
+                      let !pl = fp `mappend` (Slot idx)
                       debug $ "deleted, cont with pl=" ++ show pl
                       go pl (idx + 1) wrap'
                   else
@@ -574,27 +596,63 @@ delete' (HashTable sz loadRef hashes keys values) clearOut k h = do
                         k' <- readArray keys idx
                         if k == k'
                           then do
-                            let samePlace = _slot fp == idx
                             debug $ "found at " ++ show idx
-                            debug $ "clearout=" ++ show clearOut
-                            debug $ "sp? " ++ show samePlace
-                            -- "clearOut" is set if we intend to write a new
-                            -- element into the slot. If we're doing an update
-                            -- and we found the old key, instead of writing
-                            -- "deleted" and then re-writing the new element
-                            -- there, we can just write the new element. This
-                            -- only works if we were planning on writing the
-                            -- new element here.
-                            when (clearOut || not samePlace) $ do
-                                bumpDel loadRef 1
-                                U.writeArray hashes idx deletedMarker
-                                writeArray keys idx undefined
-                                writeArray values idx undefined
-                            return (True, fp `mappend` (Slot idx 0))
+                            let !sl = fp `mappend` (Slot idx)
+                            return $! SlotFindResponse 1 (_slot sl) idx
                           else go fp (idx + 1) wrap'
                       else go fp (idx + 1) wrap'
 
+
 ------------------------------------------------------------------------------
+{-# INLINE deleteFromSlot #-}
+deleteFromSlot :: (HashTable_ s k v) -> Int -> ST s ()
+deleteFromSlot (HashTable _ loadRef hashes keys values) idx = do
+    !he <- U.readArray hashes idx
+    when (recordIsFilled he) $ do
+        bumpDelLoad loadRef 1
+        bumpLoad loadRef (-1)
+        U.writeArray hashes idx deletedMarker
+        writeArray keys idx undefined
+        writeArray values idx undefined
+
+
+------------------------------------------------------------------------------
+{-# INLINE insertIntoSlot #-}
+insertIntoSlot :: (HashTable_ s k v) -> Int -> Elem -> k -> v -> ST s ()
+insertIntoSlot (HashTable _ loadRef hashes keys values) idx he k v = do
+    !heOld <- U.readArray hashes idx
+    let !heInt    = fromIntegral heOld :: Int
+        !delInt   = fromIntegral deletedMarker :: Int
+        !emptyInt = fromIntegral emptyMarker :: Int
+        !delBump  = mask heInt delInt -- -1 if heInt == delInt,
+                                      --  0  otherwise
+        !mLoad    = mask heInt delInt .|. mask heInt emptyInt
+        !loadBump = mLoad .&. 1 -- 1 if heInt == delInt || heInt == emptyInt,
+                                -- 0 otherwise
+    bumpDelLoad loadRef delBump
+    bumpLoad loadRef loadBump
+    U.writeArray hashes idx he
+    writeArray keys idx k
+    writeArray values idx v
+
+
+-------------------------------------------------------------------------------
+{-# INLINE bumpLoad #-}
+bumpLoad :: (SizeRefs s) -> Int -> ST s ()
+bumpLoad ref i = do
+    !ld <- readLoad ref
+    writeLoad ref $! ld + i
+
+
+------------------------------------------------------------------------------
+{-# INLINE bumpDelLoad #-}
+bumpDelLoad :: (SizeRefs s) -> Int -> ST s ()
+bumpDelLoad ref i = do
+    !ld <- readDelLoad ref
+    writeDelLoad ref $! ld + i
+
+
+-----------------------------------------------------------------------------
 maxLoad :: Double
 maxLoad = 0.82
 
@@ -603,9 +661,16 @@ maxLoad = 0.82
 emptyMarker :: Elem
 emptyMarker = 0
 
+
 ------------------------------------------------------------------------------
 deletedMarker :: Elem
 deletedMarker = 1
+
+
+------------------------------------------------------------------------------
+{-# INLINE trueInt #-}
+trueInt :: Int -> Bool
+trueInt (I# i#) = tagToEnum# i#
 
 
 ------------------------------------------------------------------------------
@@ -618,6 +683,22 @@ recordIsEmpty = (== emptyMarker)
 {-# INLINE recordIsDeleted #-}
 recordIsDeleted :: Elem -> Bool
 recordIsDeleted = (== deletedMarker)
+
+
+------------------------------------------------------------------------------
+{-# INLINE recordIsFilled #-}
+recordIsFilled :: Elem -> Bool
+recordIsFilled !el = tagToEnum# isFilled#
+  where
+    !el# = U.elemToInt# el
+    !deletedMarker# = U.elemToInt# deletedMarker
+    !emptyMarker# = U.elemToInt# emptyMarker
+#if __GLASGOW_HASKELL__ >= 708
+    !isFilled# = (el# /=# deletedMarker#) `andI#` (el# /=# emptyMarker#)
+#else
+    !delOrEmpty# = mask# el# deletedMarker# `orI#` mask# el# emptyMarker#
+    !isFilled# = 1# `andI#` notI# delOrEmpty#
+#endif
 
 
 ------------------------------------------------------------------------------

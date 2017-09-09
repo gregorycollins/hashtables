@@ -2,7 +2,7 @@
 module Data.Vector.Algorithms.Shuffle
   ( shuffle ) where
 
-import           Control.Monad.ST             (unsafeIOToST)
+import           Control.Monad.ST.Unsafe      (unsafeIOToST)
 import           Data.Vector                  (Vector)
 import qualified Data.Vector                  as V
 import qualified Data.Vector.Mutable          as MV

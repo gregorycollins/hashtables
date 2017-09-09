@@ -13,6 +13,7 @@ module Data.HashTable.Internal.Linear.Bucket
   lookupIndex,
   elemAt,
   delete,
+  mutate,
   toList,
   fromList,
   mapM_,
@@ -317,6 +318,52 @@ delete bucketKey !k | keyIsEmpty bucketKey = do
                   writeSTRef hwRef hw'
                   return True
               else go hw (i-1)
+
+
+------------------------------------------------------------------------------
+mutate :: (Eq k) =>
+          Bucket s k v
+       -> k
+       -> (Maybe v -> (Maybe v, a))
+       -> ST s (Int, Maybe (Bucket s k v), a)
+mutate bucketKey !k !f
+    | keyIsEmpty bucketKey =
+        case f Nothing of
+            (Nothing, a) -> return (0, Nothing, a)
+            (Just v', a) -> do
+                (!hw', mbk) <- snoc bucketKey k v'
+                return (hw', mbk, a)
+    | otherwise = mutate' $ fromKey bucketKey
+  where
+    mutate' (Bucket sz hwRef keys values) = do
+        hw <- readSTRef hwRef
+        pos <- findPosition hw (hw-1)
+        mv <- do
+            if pos < 0
+                then return Nothing
+                else readArray values pos >>= return . Just
+        case (mv, f mv) of
+            (Nothing, (Nothing, a)) -> return (hw, Nothing, a)
+            (Nothing, (Just v', a)) -> do
+                (!hw', mbk) <- snoc bucketKey k v'
+                return (hw', mbk, a)
+            (Just v, (Just v', a)) -> do
+                writeArray values pos v'
+                return (hw, Nothing, a)
+            (Just v, (Nothing, a)) -> do
+                move (hw-1) pos keys
+                move (hw-1) pos values
+                let !hw' = hw-1
+                writeSTRef hwRef hw'
+                return (hw', Nothing, a)
+      where
+        findPosition !hw !i
+            | i < 0 = return (-1)
+            | otherwise = do
+                k' <- readArray keys i
+                if k == k'
+                  then return i
+                  else findPosition hw (i-1)
 
 
 ------------------------------------------------------------------------------

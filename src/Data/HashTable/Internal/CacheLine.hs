@@ -16,6 +16,7 @@ module Data.HashTable.Internal.CacheLine
   , bl_abs#
   , sign#
   , mask#
+  , mask
   , maskw#
   ) where
 
@@ -190,6 +191,12 @@ mask# !a# !b# = let !(I# z#) = fromEnum (a# ==# b#)
 but GHC doesn't properly optimize this as straight-line code at the moment.
 
 -}
+
+
+{-# INLINE mask #-}
+-- | Returns 0xfff..fff (aka -1) if a == b, 0 otherwise.
+mask :: Int -> Int -> Int
+mask (I# a#) (I# b#) = I# (mask# a# b#)
 
 
 {-# INLINE maskw# #-}
