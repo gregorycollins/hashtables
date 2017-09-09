@@ -1,5 +1,18 @@
 # Hashtables changelog
 
+## 1.2.2.0
+  - Bumped vector bounds.
+
+  - Added `lookupIndex` and `nextByIndex` functions.
+  - Add `mutate` function.
+
+Thanks to contributors:
+
+  - Vykintas Baltrušaitis.
+  - Franklin Chen
+  - Iavor Diatchki
+  - Eric Mertins
+
 ## 1.2.1.1
   - Bumped vector bounds.
 
