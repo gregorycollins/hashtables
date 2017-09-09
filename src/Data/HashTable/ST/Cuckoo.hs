@@ -70,6 +70,8 @@ module Data.HashTable.ST.Cuckoo
   , insert
   , mapM_
   , foldM
+  , lookupIndex
+  , nextByIndex
   ) where
 
 
@@ -128,6 +130,8 @@ instance C.HashTable HashTable where
     lookup          = lookup
     foldM           = foldM
     mapM_           = mapM_
+    lookupIndex     = lookupIndex
+    nextByIndex     = nextByIndex
     computeOverhead = computeOverhead
 
 
@@ -179,7 +183,7 @@ computeOverhead htRef = readRef htRef >>= work
         return $! fromIntegral (oh::Int) / fromIntegral nFilled
 
       where
-        hashCodesPerWord = (bitSize (0 :: Int)) `div` 16
+        hashCodesPerWord = (finiteBitSize (0 :: Int)) `div` 16
         totSz = numElemsInCacheLine * sz
 
         f !a _ = return $! a+1
@@ -692,3 +696,44 @@ writeRef (HT ref) ht = writeSTRef ref ht
 readRef :: HashTable s k v -> ST s (HashTable_ s k v)
 readRef (HT ref) = readSTRef ref
 {-# INLINE readRef #-}
+
+
+------------------------------------------------------------------------------
+
+-- | Find index of given key in the hashtable.
+lookupIndex :: (Hashable k, Eq k) => HashTable s k v -> k -> ST s (Maybe Word)
+lookupIndex htRef k =
+  do HashTable sz _ hashes keys _ _ <- readRef htRef
+
+     let !h1  = hash1 k
+         !h2  = hash2 k
+         !he1 = hashToElem h1
+         !he2 = hashToElem h2
+         !b1  = whichLine h1 sz
+         !b2  = whichLine h2 sz
+
+     idx1 <- searchOne keys hashes k b1 he1
+     if idx1 >= 0
+       then return $! (Just $! fromIntegral idx1)
+       else do idx2 <- searchOne keys hashes k b2 he2
+               if idx2 >= 0
+                 then return $! (Just $! fromIntegral idx2)
+                 else return Nothing
+
+-- | Find the next entry in the hashtable starting at the given index.
+nextByIndex :: HashTable s k v -> Word -> ST s (Maybe (Word,k,v))
+nextByIndex htRef i0 =
+  do HashTable sz _ hashes keys values _ <- readRef htRef
+     let totSz = numElemsInCacheLine * sz
+         go i
+           | i >= totSz = return Nothing
+           | otherwise =
+               do h <- U.readArray hashes i
+                  if h == emptyMarker
+                    then go (i+1)
+                    else do k <- readArray keys i
+                            v <- readArray values i
+                            let !i' = fromIntegral i
+                            return (Just (i',k,v))
+
+     go (fromIntegral i0)

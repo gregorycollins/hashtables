@@ -81,6 +81,15 @@ class HashTable h where
     -- table. /O(n)/.
     mapM_    :: ((k,v) -> ST s b) -> h s k v -> ST s ()
 
+    -- | Looks up the index of a key-value mapping in a hash table suitable
+    -- for passing to 'nextByIndex'.
+    lookupIndex :: (Eq k, Hashable k) => h s k v -> k -> ST s (Maybe Word)
+
+    -- | Returns the next key-value mapping stored at the given index or at
+    -- a greater index. The index, key, and value of the next record are
+    -- returned.
+    nextByIndex :: h s k v -> Word -> ST s (Maybe (Word,k,v))
+
     -- | Computes the overhead (in words) per key-value mapping. Used for
     -- debugging, etc; time complexity depends on the underlying hash table
     -- implementation. /O(n)/.

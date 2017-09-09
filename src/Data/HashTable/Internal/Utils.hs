@@ -41,7 +41,7 @@ import           Control.Monad.ST                 (unsafeIOToST)
 
 ------------------------------------------------------------------------------
 wordSize :: Int
-wordSize = bitSize (0::Int)
+wordSize = finiteBitSize (0::Int)
 
 
 cacheLineSize :: Int
@@ -51,7 +51,7 @@ cacheLineSize = 64
 numElemsInCacheLine :: Int
 numElemsInCacheLine = z
   where
-    !z = cacheLineSize `div` (bitSize (0::Elem) `div` 8)
+    !z = cacheLineSize `div` (finiteBitSize (0::Elem) `div` 8)
 
 
 -- | What you have to mask an integer index by to tell if it's
