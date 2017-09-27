@@ -1,5 +1,10 @@
 # Hashtables changelog
 
+## 1.2.2.1
+
+  - Adjusted base lower bound (it was incorrect), bumped some testsuite +
+    benchmark bounds.
+
 ## 1.2.2.0
   - Bumped vector bounds.
 

@@ -126,7 +126,7 @@ Executable compute-overhead
                      test-framework             >= 0.3.1   && <0.9,
                      test-framework-quickcheck2 >= 0.2.6   && <0.4,
                      test-framework-hunit       >= 0.2.6   && <3,
-                     statistics                 >= 0.8     && <0.14,
+                     statistics                 >= 0.14    && <0.15,
                      primitive,
                      vector                     >= 0.7
 

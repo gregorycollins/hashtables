@@ -48,6 +48,7 @@ module Data.HashTable.Class
 
 import           Control.Monad.ST
 import           Data.Hashable
+import           Data.Word        (Word)
 import           Prelude          hiding (mapM_)
 
 -- | A typeclass for hash tables in the 'ST' monad. The operations on these
