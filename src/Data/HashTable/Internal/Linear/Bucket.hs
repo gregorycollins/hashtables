@@ -14,6 +14,7 @@ module Data.HashTable.Internal.Linear.Bucket
   elemAt,
   delete,
   mutate,
+  mutateST,
   toList,
   fromList,
   mapM_,
@@ -326,9 +327,20 @@ mutate :: (Eq k) =>
        -> k
        -> (Maybe v -> (Maybe v, a))
        -> ST s (Int, Maybe (Bucket s k v), a)
-mutate bucketKey !k !f
-    | keyIsEmpty bucketKey =
-        case f Nothing of
+mutate bucketKey !k !f = mutateST bucketKey k (pure . f)
+{-# INLINE mutate #-}
+
+
+------------------------------------------------------------------------------
+mutateST :: (Eq k) =>
+            Bucket s k v
+         -> k
+         -> (Maybe v -> ST s (Maybe v, a))
+         -> ST s (Int, Maybe (Bucket s k v), a)
+mutateST bucketKey !k !f
+    | keyIsEmpty bucketKey = do
+        fRes <- f Nothing
+        case fRes of
             (Nothing, a) -> return (0, Nothing, a)
             (Just v', a) -> do
                 (!hw', mbk) <- snoc bucketKey k v'
@@ -342,7 +354,8 @@ mutate bucketKey !k !f
             if pos < 0
                 then return Nothing
                 else readArray values pos >>= return . Just
-        case (mv, f mv) of
+        fRes <- f mv
+        case (mv, fRes) of
             (Nothing, (Nothing, a)) -> return (hw, Nothing, a)
             (Nothing, (Just v', a)) -> do
                 (!hw', mbk) <- snoc bucketKey k v'

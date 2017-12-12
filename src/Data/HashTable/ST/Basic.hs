@@ -88,6 +88,7 @@ module Data.HashTable.ST.Basic
   , lookup
   , insert
   , mutate
+  , mutateST
   , mapM_
   , foldM
   , computeOverhead
@@ -168,6 +169,7 @@ instance C.HashTable HashTable where
     nextByIndex     = nextByIndex
     computeOverhead = computeOverhead
     mutate          = mutate
+    mutateST        = mutateST
 
 
 ------------------------------------------------------------------------------
@@ -304,13 +306,25 @@ insert htRef !k !v = do
 
 ------------------------------------------------------------------------------
 -- | See the documentation for this function in
--- "Data.HashTable.Class#v:alter".
+-- "Data.HashTable.Class#v:mutate".
 mutate :: (Eq k, Hashable k) =>
           (HashTable s k v)
        -> k
        -> (Maybe v -> (Maybe v, a))
        -> ST s a
-mutate htRef !k !f = do
+mutate htRef !k !f = mutateST htRef k (pure . f)
+{-# INLINE mutate #-}
+
+
+------------------------------------------------------------------------------
+-- | See the documentation for this function in
+-- "Data.HashTable.Class#v:mutateST".
+mutateST :: (Eq k, Hashable k) =>
+            (HashTable s k v)
+         -> k
+         -> (Maybe v -> ST s (Maybe v, a))
+         -> ST s a
+mutateST htRef !k !f = do
     ht <- readRef htRef
     let values = _values ht
     debug $ "mutate h=" ++ show h
@@ -320,7 +334,7 @@ mutate htRef !k !f = do
     !mv <- if found
               then fmap Just $ readArray values b1
               else return Nothing
-    let (!mv', !result) = f mv
+    (!mv', !result) <- f mv
     case (mv, mv') of
         (Nothing, Nothing) -> return ()
         (Just _, Nothing)  -> do
@@ -337,7 +351,7 @@ mutate htRef !k !f = do
   where
     !h     = hash k
     !he    = hashToElem h
-{-# INLINE mutate #-}
+{-# INLINE mutateST #-}
 
 
 ------------------------------------------------------------------------------
