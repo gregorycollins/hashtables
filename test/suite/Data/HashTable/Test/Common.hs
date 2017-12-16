@@ -29,7 +29,7 @@ import           Test.Framework.Providers.QuickCheck2
 import           Test.HUnit                           (assertFailure)
 import           Test.QuickCheck                      (arbitrary, choose,
                                                        sample')
-import           Test.QuickCheck.Monadic              (PropertyM, assert,
+import           Test.QuickCheck.Monadic              (PropertyM, assert, pre,
                                                        forAllM, monadicIO, run)
 ------------------------------------------------------------------------------
 import qualified Data.HashTable.Class                 as C
