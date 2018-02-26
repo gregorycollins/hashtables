@@ -103,6 +103,9 @@ import           Data.Hashable                     (Hashable)
 import qualified Data.Hashable                     as H
 import           Data.Maybe
 import           Data.Monoid
+#if MIN_VERSION_base(4,9,0) && !MIN_VERSION_base(4,11,0)
+import Data.Semigroup
+#endif
 import qualified Data.Primitive.ByteArray          as A
 import           Data.STRef
 import           GHC.Exts
@@ -488,6 +491,12 @@ newtype Slot = Slot { _slot :: Int } deriving (Show)
 
 
 ------------------------------------------------------------------------------
+
+#if MIN_VERSION_base(4,9,0)
+instance Semigroup Slot where
+ (<>) = mappend
+#endif
+
 instance Monoid Slot where
     mempty = Slot maxBound
     (Slot x1) `mappend` (Slot x2) =
