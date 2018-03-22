@@ -48,6 +48,7 @@ module Data.HashTable.IO
   , delete
   , lookup
   , mutate
+  , mutateIO
   , fromList
   , fromListWithSizeHint
   , toList
@@ -64,6 +65,7 @@ import           Control.Monad.Primitive       (PrimState)
 import           Control.Monad.ST              (stToIO)
 import           Data.Hashable                 (Hashable)
 import qualified Data.HashTable.Class          as C
+import           GHC.IO                        (ioToST)
 import           Prelude                       hiding (lookup, mapM_)
 
 ------------------------------------------------------------------------------
@@ -178,6 +180,19 @@ nextByIndex h k = stToIO $ C.nextByIndex h k
                          LinearHashTable k v -> Word -> IO (Maybe (Word,k,v)) #-}
 {-# SPECIALIZE INLINE nextByIndex :: (Eq k, Hashable k) =>
                          CuckooHashTable k v -> Word -> IO (Maybe (Word,k,v)) #-}
+
+------------------------------------------------------------------------------
+-- | See the documentation for this function in "Data.HashTable.Class#v:mutateST".
+mutateIO   :: (C.HashTable h, Eq k, Hashable k) =>
+              IOHashTable h k v -> k -> (Maybe v -> IO (Maybe v, a)) -> IO a
+mutateIO h k f = stToIO $ C.mutateST h k (ioToST . f)
+{-# INLINE mutateIO #-}
+{-# SPECIALIZE INLINE mutateIO :: (Eq k, Hashable k) =>
+                         BasicHashTable  k v -> k -> (Maybe v -> IO (Maybe v, a)) -> IO a #-}
+{-# SPECIALIZE INLINE mutateIO :: (Eq k, Hashable k) =>
+                         LinearHashTable k v -> k -> (Maybe v -> IO (Maybe v, a)) -> IO a #-}
+{-# SPECIALIZE INLINE mutateIO :: (Eq k, Hashable k) =>
+                         CuckooHashTable k v -> k -> (Maybe v -> IO (Maybe v, a)) -> IO a #-}
 
 ------------------------------------------------------------------------------
 -- | See the documentation for this function in "Data.HashTable.Class#v:mutate".

@@ -69,6 +69,7 @@ module Data.HashTable.ST.Cuckoo
   , lookup
   , insert
   , mutate
+  , mutateST
   , mapM_
   , foldM
   , lookupIndex
@@ -135,6 +136,7 @@ instance C.HashTable HashTable where
     nextByIndex     = nextByIndex
     computeOverhead = computeOverhead
     mutate          = mutate
+    mutateST        = mutateST
 
 
 ------------------------------------------------------------------------------
@@ -174,12 +176,22 @@ mutate :: (Eq k, Hashable k) =>
        -> k
        -> (Maybe v -> (Maybe v, a))
        -> ST s a
-mutate htRef !k !f = do
+mutate htRef !k !f = mutateST htRef k (pure . f)
+{-# INLINE mutate #-}
+
+
+------------------------------------------------------------------------------
+mutateST :: (Eq k, Hashable k) =>
+            HashTable s k v
+         -> k
+         -> (Maybe v -> ST s (Maybe v, a))
+         -> ST s a
+mutateST htRef !k !f = do
     ht <- readRef htRef
     (newHt, a) <- mutate' ht k f
     writeRef htRef newHt
     return a
-{-# INLINE mutate #-}
+{-# INLINE mutateST #-}
 
 
 ------------------------------------------------------------------------------
@@ -414,11 +426,12 @@ insert' ht k v = do
 mutate' :: (Eq k, Hashable k) =>
            HashTable_ s k v
         -> k
-        -> (Maybe v -> (Maybe v, a))
+        -> (Maybe v -> ST s (Maybe v, a))
         -> ST s (HashTable_ s k v, a)
 mutate' ht@(HashTable sz _ hashes keys values _) !k !f = do
     !(maybeVal, idx, hashCode) <- lookupSlot
-    case (maybeVal, f maybeVal) of
+    !fRes <- f maybeVal
+    case (maybeVal, fRes) of
         (Nothing, (Nothing, a)) -> return (ht, a)
         (Just v, (Just v', a)) -> do
             writeArray values idx v'

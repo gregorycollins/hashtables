@@ -84,6 +84,7 @@ module Data.HashTable.ST.Linear
   , lookup
   , insert
   , mutate
+  , mutateST
   , mapM_
   , foldM
   , computeOverhead
@@ -132,6 +133,7 @@ instance C.HashTable HashTable where
     nextByIndex     = nextByIndex
     computeOverhead = computeOverhead
     mutate          = mutate
+    mutateST        = mutateST
 
 
 ------------------------------------------------------------------------------
@@ -228,7 +230,17 @@ mutate :: (Eq k, Hashable k) =>
        -> k
        -> (Maybe v -> (Maybe v, a))
        -> ST s a
-mutate htRef k f = do
+mutate htRef k f = mutateST htRef k (pure . f)
+{-# INLINE mutate #-}
+
+
+------------------------------------------------------------------------------
+mutateST :: (Eq k, Hashable k) =>
+            (HashTable s k v)
+         -> k
+         -> (Maybe v -> ST s (Maybe v, a))
+         -> ST s a
+mutateST htRef k f = do
     (ht, a) <- readRef htRef >>= work
     writeRef htRef ht
     return a
@@ -236,7 +248,7 @@ mutate htRef k f = do
     work ht@(HashTable lvl splitptr buckets) = do
         let !h0 = hashKey lvl splitptr k
         bucket <- readArray buckets h0
-        (!bsz, mbk, a) <- Bucket.mutate bucket k f
+        (!bsz, mbk, a) <- Bucket.mutateST bucket k f
         maybe (return ())
               (writeArray buckets h0)
               mbk
