@@ -499,9 +499,16 @@ instance Semigroup Slot where
 
 instance Monoid Slot where
     mempty = Slot maxBound
+#if !MIN_VERSION_base(4,11,0)
     (Slot x1) `mappend` (Slot x2) =
         let !m = mask x1 maxBound
         in Slot $! (complement m .&. x1) .|. (m .&. x2)
+#else
+instance Semigroup Slot where
+    (Slot x1) <> (Slot x2) =
+        let !m = mask x1 maxBound
+        in Slot $! (complement m .&. x1) .|. (m .&. x2)
+#endif
 
 
 ------------------------------------------------------------------------------
