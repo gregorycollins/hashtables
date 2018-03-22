@@ -38,7 +38,7 @@ import           System.Random.MWC
 
 ------------------------------------------------------------------------------
 newtype WorkloadMonad a = WM (ReaderT GenIO IO a)
-  deriving (Monad, MonadIO)
+  deriving (Functor, Applicative, Monad, MonadIO)
 
 
 ------------------------------------------------------------------------------
