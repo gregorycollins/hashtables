@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE CPP          #-}
 
 -- | This module contains a 'HashTable' typeclass for the hash table
 -- implementations in this package. This allows you to provide functions which
@@ -45,11 +46,13 @@ module Data.HashTable.Class
   , toList
   ) where
 
-
+#if !MIN_VERSION_base(4,8,0)
+import           Control.Applicative
+#endif
 import           Control.Monad.ST
 import           Data.Hashable
-import           Data.Word        (Word)
-import           Prelude          hiding (mapM_)
+import           Data.Word           (Word)
+import           Prelude             hiding (mapM_)
 
 -- | A typeclass for hash tables in the 'ST' monad. The operations on these
 -- hash tables are typically both key- and value-strict.

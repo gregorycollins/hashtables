@@ -27,6 +27,9 @@ module Data.HashTable.Internal.Linear.Bucket
 
 
 ------------------------------------------------------------------------------
+#if !MIN_VERSION_base(4,8,0)
+import           Control.Applicative
+#endif
 import           Control.Monad                        hiding (foldM, mapM_)
 import qualified Control.Monad
 import           Control.Monad.ST                     (ST)

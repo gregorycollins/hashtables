@@ -78,6 +78,9 @@ module Data.HashTable.ST.Cuckoo
 
 
 ------------------------------------------------------------------------------
+#if !MIN_VERSION_base(4,8,0)
+import           Control.Applicative
+#endif
 import           Control.Monad                                      hiding
                                                                      (foldM,
                                                                      mapM_)
@@ -449,7 +452,7 @@ mutate' ht@(HashTable sz _ hashes keys values _) !k !f = do
 
     b1 = whichLine h1 sz
     b2 = whichLine h2 sz
-    
+
     he1 = hashToElem h1
     he2 = hashToElem h2
 

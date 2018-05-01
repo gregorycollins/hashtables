@@ -91,6 +91,10 @@ module Data.HashTable.ST.Linear
   ) where
 
 ------------------------------------------------------------------------------
+#if !MIN_VERSION_base(4,8,0)
+import           Control.Applicative
+import           Data.Word
+#endif
 import           Control.Monad                         hiding (foldM, mapM_)
 import           Control.Monad.ST
 import           Data.Bits
