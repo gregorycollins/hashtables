@@ -1,5 +1,9 @@
 # Hashtables changelog
 
+## 1.2.3.1
+
+  - Fix building with GHC <7.10 (thx Vanessa McHale)
+
 ## 1.2.3.0
 
   - update for Semigroup/monoid breakage with GHC 8.4 (thx Fumiaki Kinoshita)
