@@ -96,6 +96,9 @@ module Data.HashTable.ST.Basic
 
 
 ------------------------------------------------------------------------------
+#if !MIN_VERSION_base(4,8,0)
+import           Control.Applicative
+#endif
 import           Control.Exception                 (assert)
 import           Control.Monad                     hiding (foldM, mapM_)
 import           Control.Monad.ST                  (ST)
@@ -105,7 +108,7 @@ import qualified Data.Hashable                     as H
 import           Data.Maybe
 import           Data.Monoid
 #if MIN_VERSION_base(4,9,0) && !MIN_VERSION_base(4,11,0)
-import Data.Semigroup
+import           Data.Semigroup
 #endif
 import qualified Data.Primitive.ByteArray          as A
 import           Data.STRef
