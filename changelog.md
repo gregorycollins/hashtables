@@ -1,5 +1,9 @@
 # Hashtables changelog
 
+## 1.2.3.2
+
+  - Fix typo in module reference (thx Don Allen)
+
 ## 1.2.3.1
 
   - Fix building with GHC <7.10 (thx Vanessa McHale)

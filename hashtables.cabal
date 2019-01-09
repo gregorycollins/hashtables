@@ -1,5 +1,5 @@
 Name:                hashtables
-Version:             1.2.3.1
+Version:             1.2.3.2
 Synopsis:            Mutable hash tables in the ST monad
 Homepage:            http://github.com/gregorycollins/hashtables
 License:             BSD3
@@ -29,7 +29,7 @@ Description:
        the table can perform acceptably well even when approaching 90% full.
        Randomized testing shows this implementation of cuckoo hashing to be
        slightly faster on insert and slightly slower on lookup than
-       "Data.Hashtable.ST.Basic", while being more space efficient by about a
+       "Data.HashTable.ST.Basic", while being more space efficient by about a
        half-word per key-value mapping. Cuckoo hashing, like the basic hash
        table implementation using linear probing, can suffer from long delays
        when the table is resized.
