@@ -99,7 +99,7 @@ type IOHashTable tabletype k v = tabletype (PrimState IO) k v
 
 
 ------------------------------------------------------------------------------
--- | See the documentation for this function in "Data.HashTable.Class#v:new".
+-- | See the documentation for this function in 'Data.HashTable.Class.new'.
 new :: C.HashTable h => IO (IOHashTable h k v)
 new = stToIO C.new
 {-# INLINE new #-}
@@ -109,7 +109,7 @@ new = stToIO C.new
 
 ------------------------------------------------------------------------------
 -- | See the documentation for this function in
--- "Data.HashTable.Class#v:newSized".
+-- 'Data.HashTable.Class.newSized'.
 newSized :: C.HashTable h => Int -> IO (IOHashTable h k v)
 newSized = stToIO . C.newSized
 {-# INLINE newSized #-}
@@ -119,7 +119,7 @@ newSized = stToIO . C.newSized
 
 
 ------------------------------------------------------------------------------
--- | See the documentation for this function in "Data.HashTable.Class#v:insert".
+-- | See the documentation for this function in 'Data.HashTable.Class.insert'.
 insert   :: (C.HashTable h, Eq k, Hashable k) =>
             IOHashTable h k v -> k -> v -> IO ()
 insert h k v = stToIO $ C.insert h k v
@@ -133,7 +133,7 @@ insert h k v = stToIO $ C.insert h k v
 
 
 ------------------------------------------------------------------------------
--- | See the documentation for this function in "Data.HashTable.Class#v:delete".
+-- | See the documentation for this function in 'Data.HashTable.Class.delete'.
 delete   :: (C.HashTable h, Eq k, Hashable k) =>
             IOHashTable h k v -> k -> IO ()
 delete h k = stToIO $ C.delete h k
@@ -147,7 +147,7 @@ delete h k = stToIO $ C.delete h k
 
 
 ------------------------------------------------------------------------------
--- | See the documentation for this function in "Data.HashTable.Class#v:lookup".
+-- | See the documentation for this function in 'Data.HashTable.Class.lookup'.
 lookup   :: (C.HashTable h, Eq k, Hashable k) =>
             IOHashTable h k v -> k -> IO (Maybe v)
 lookup h k = stToIO $ C.lookup h k
@@ -160,7 +160,7 @@ lookup h k = stToIO $ C.lookup h k
                          CuckooHashTable k v -> k -> IO (Maybe v) #-}
 
 ------------------------------------------------------------------------------
--- | See the documentation for this function in "Data.HashTable.Class#v:lookupIndex".
+-- | See the documentation for this function in 'Data.HashTable.Class.lookupIndex'.
 lookupIndex   :: (C.HashTable h, Eq k, Hashable k) =>
                  IOHashTable h k v -> k -> IO (Maybe Word)
 lookupIndex h k = stToIO $ C.lookupIndex h k
@@ -173,7 +173,7 @@ lookupIndex h k = stToIO $ C.lookupIndex h k
                          CuckooHashTable k v -> k -> IO (Maybe Word) #-}
 
 ------------------------------------------------------------------------------
--- | See the documentation for this function in "Data.HashTable.Class#v:nextByIndex".
+-- | See the documentation for this function in 'Data.HashTable.Class.nextByIndex'.
 nextByIndex   :: (C.HashTable h, Eq k, Hashable k) =>
                  IOHashTable h k v -> Word -> IO (Maybe (Word,k,v))
 nextByIndex h k = stToIO $ C.nextByIndex h k
@@ -186,7 +186,7 @@ nextByIndex h k = stToIO $ C.nextByIndex h k
                          CuckooHashTable k v -> Word -> IO (Maybe (Word,k,v)) #-}
 
 ------------------------------------------------------------------------------
--- | See the documentation for this function in "Data.HashTable.Class#v:mutateST".
+-- | See the documentation for this function in 'Data.HashTable.Class.mutateST'.
 mutateIO   :: (C.HashTable h, Eq k, Hashable k) =>
               IOHashTable h k v -> k -> (Maybe v -> IO (Maybe v, a)) -> IO a
 mutateIO h k f = stToIO $ C.mutateST h k (ioToST . f)
@@ -199,7 +199,7 @@ mutateIO h k f = stToIO $ C.mutateST h k (ioToST . f)
                          CuckooHashTable k v -> k -> (Maybe v -> IO (Maybe v, a)) -> IO a #-}
 
 ------------------------------------------------------------------------------
--- | See the documentation for this function in "Data.HashTable.Class#v:mutate".
+-- | See the documentation for this function in 'Data.HashTable.Class.mutate'.
 mutate   :: (C.HashTable h, Eq k, Hashable k) =>
             IOHashTable h k v -> k -> (Maybe v -> (Maybe v, a)) -> IO a
 mutate h k f = stToIO $ C.mutate h k f
@@ -214,7 +214,7 @@ mutate h k f = stToIO $ C.mutate h k f
 
 ------------------------------------------------------------------------------
 -- | See the documentation for this function in
--- "Data.HashTable.Class#v:fromList".
+-- 'Data.HashTable.Class.fromList'.
 fromList :: (C.HashTable h, Eq k, Hashable k) =>
             [(k,v)] -> IO (IOHashTable h k v)
 fromList = stToIO . C.fromList
@@ -229,7 +229,7 @@ fromList = stToIO . C.fromList
 
 ------------------------------------------------------------------------------
 -- | See the documentation for this function in
--- "Data.HashTable.Class#v:fromListWithSizeHint".
+-- 'Data.HashTable.Class.fromListWithSizeHint'.
 fromListWithSizeHint :: (C.HashTable h, Eq k, Hashable k) =>
                         Int -> [(k,v)] -> IO (IOHashTable h k v)
 fromListWithSizeHint n = stToIO . C.fromListWithSizeHint n
@@ -243,7 +243,7 @@ fromListWithSizeHint n = stToIO . C.fromListWithSizeHint n
 
 
 ------------------------------------------------------------------------------
--- | See the documentation for this function in "Data.HashTable.Class#v:toList".
+-- | See the documentation for this function in 'Data.HashTable.Class.toList'.
 toList   :: (C.HashTable h, Eq k, Hashable k) =>
             IOHashTable h k v -> IO [(k,v)]
 toList = stToIO . C.toList
@@ -257,7 +257,7 @@ toList = stToIO . C.toList
 
 
 ------------------------------------------------------------------------------
--- | See the documentation for this function in "Data.HashTable.Class#v:foldM".
+-- | See the documentation for this function in 'Data.HashTable.Class.foldM'.
 foldM :: (C.HashTable h) =>
          (a -> (k,v) -> IO a)
       -> a
@@ -275,7 +275,7 @@ foldM f seed ht = stToIO $ C.foldM f' seed ht
 
 
 ------------------------------------------------------------------------------
--- | See the documentation for this function in "Data.HashTable.Class#v:mapM_".
+-- | See the documentation for this function in 'Data.HashTable.Class.mapM_'.
 mapM_ :: (C.HashTable h) => ((k,v) -> IO a) -> IOHashTable h k v -> IO ()
 mapM_ f ht = stToIO $ C.mapM_ f' ht
   where
@@ -291,7 +291,7 @@ mapM_ f ht = stToIO $ C.mapM_ f' ht
 
 ------------------------------------------------------------------------------
 -- | See the documentation for this function in
--- "Data.HashTable.Class#v:computeOverhead".
+-- 'Data.HashTable.Class.computeOverhead'.
 computeOverhead :: (C.HashTable h) => IOHashTable h k v -> IO Double
 computeOverhead = stToIO . C.computeOverhead
 {-# INLINE computeOverhead #-}

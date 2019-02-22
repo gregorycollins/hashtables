@@ -185,7 +185,7 @@ instance Show (HashTable s k v) where
 
 ------------------------------------------------------------------------------
 -- | See the documentation for this function in
--- "Data.HashTable.Class#v:new".
+-- 'Data.HashTable.Class.new'.
 new :: ST s (HashTable s k v)
 new = newSized 1
 {-# INLINE new #-}
@@ -193,7 +193,7 @@ new = newSized 1
 
 ------------------------------------------------------------------------------
 -- | See the documentation for this function in
--- "Data.HashTable.Class#v:newSized".
+-- 'Data.HashTable.Class.newSized'.
 newSized :: Int -> ST s (HashTable s k v)
 newSized n = do
     debug $ "entering: newSized " ++ show n
@@ -219,7 +219,7 @@ newSizedReal m = do
 
 ------------------------------------------------------------------------------
 -- | See the documentation for this function in
--- "Data.HashTable.Class#v:delete".
+-- 'Data.HashTable.Class.delete'.
 delete :: (Hashable k, Eq k) =>
           (HashTable s k v)
        -> k
@@ -235,7 +235,7 @@ delete htRef k = do
 
 ------------------------------------------------------------------------------
 -- | See the documentation for this function in
--- "Data.HashTable.Class#v:lookup".
+-- 'Data.HashTable.Class.lookup'.
 lookup :: (Eq k, Hashable k) => (HashTable s k v) -> k -> ST s (Maybe v)
 lookup htRef !k = do
     ht <- readRef htRef
@@ -287,7 +287,7 @@ lookup htRef !k = do
 
 ------------------------------------------------------------------------------
 -- | See the documentation for this function in
--- "Data.HashTable.Class#v:insert".
+-- 'Data.HashTable.Class.insert'.
 insert :: (Eq k, Hashable k) =>
           (HashTable s k v)
        -> k
@@ -312,7 +312,7 @@ insert htRef !k !v = do
 
 ------------------------------------------------------------------------------
 -- | See the documentation for this function in
--- "Data.HashTable.Class#v:mutate".
+-- 'Data.HashTable.Class.mutate'.
 mutate :: (Eq k, Hashable k) =>
           (HashTable s k v)
        -> k
@@ -324,7 +324,7 @@ mutate htRef !k !f = mutateST htRef k (pure . f)
 
 ------------------------------------------------------------------------------
 -- | See the documentation for this function in
--- "Data.HashTable.Class#v:mutateST".
+-- 'Data.HashTable.Class.mutateST'.
 mutateST :: (Eq k, Hashable k) =>
             (HashTable s k v)
          -> k
@@ -362,7 +362,7 @@ mutateST htRef !k !f = do
 
 ------------------------------------------------------------------------------
 -- | See the documentation for this function in
--- "Data.HashTable.Class#v:foldM".
+-- 'Data.HashTable.Class.foldM'.
 foldM :: (a -> (k,v) -> ST s a) -> a -> HashTable s k v -> ST s a
 foldM f seed0 htRef = readRef htRef >>= work
   where
@@ -382,7 +382,7 @@ foldM f seed0 htRef = readRef htRef >>= work
 
 ------------------------------------------------------------------------------
 -- | See the documentation for this function in
--- "Data.HashTable.Class#v:mapM_".
+-- 'Data.HashTable.Class.mapM_'.
 mapM_ :: ((k,v) -> ST s b) -> HashTable s k v -> ST s ()
 mapM_ f htRef = readRef htRef >>= work
   where
@@ -402,7 +402,7 @@ mapM_ f htRef = readRef htRef >>= work
 
 ------------------------------------------------------------------------------
 -- | See the documentation for this function in
--- "Data.HashTable.Class#v:computeOverhead".
+-- 'Data.HashTable.Class.computeOverhead'.
 computeOverhead :: HashTable s k v -> ST s Double
 computeOverhead htRef = readRef htRef >>= work
   where

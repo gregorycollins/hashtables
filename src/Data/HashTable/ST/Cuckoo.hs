@@ -149,7 +149,7 @@ instance Show (HashTable s k v) where
 
 ------------------------------------------------------------------------------
 -- | See the documentation for this function in
--- "Data.HashTable.Class#v:new".
+-- 'Data.HashTable.Class.new'.
 new :: ST s (HashTable s k v)
 new = newSizedReal 2 >>= newRef
 {-# INLINE new #-}
@@ -157,7 +157,7 @@ new = newSizedReal 2 >>= newRef
 
 ------------------------------------------------------------------------------
 -- | See the documentation for this function in
--- "Data.HashTable.Class#v:newSized".
+-- 'Data.HashTable.Class.newSized'.
 newSized :: Int -> ST s (HashTable s k v)
 newSized n = do
     let n' = (n + numElemsInCacheLine - 1) `div` numElemsInCacheLine
@@ -168,7 +168,7 @@ newSized n = do
 
 ------------------------------------------------------------------------------
 -- | See the documentation for this function in
--- "Data.HashTable.Class#v:insert".
+-- 'Data.HashTable.Class.insert'.
 insert :: (Eq k, Hashable k) => HashTable s k v -> k -> v -> ST s ()
 insert ht !k !v = readRef ht >>= \h -> insert' h k v >>= writeRef ht
 
@@ -199,7 +199,7 @@ mutateST htRef !k !f = do
 
 ------------------------------------------------------------------------------
 -- | See the documentation for this function in
--- "Data.HashTable.Class#v:computeOverhead".
+-- 'Data.HashTable.Class.computeOverhead'.
 computeOverhead :: HashTable s k v -> ST s Double
 computeOverhead htRef = readRef htRef >>= work
   where
@@ -222,7 +222,7 @@ computeOverhead htRef = readRef htRef >>= work
 
 ------------------------------------------------------------------------------
 -- | See the documentation for this function in
--- "Data.HashTable.Class#v:delete".
+-- 'Data.HashTable.Class.delete'.
 delete :: (Hashable k, Eq k) =>
           HashTable s k v
        -> k
@@ -243,7 +243,7 @@ delete htRef k = readRef htRef >>= go
 
 ------------------------------------------------------------------------------
 -- | See the documentation for this function in
--- "Data.HashTable.Class#v:lookup".
+-- 'Data.HashTable.Class.lookup'.
 lookup :: (Eq k, Hashable k) =>
           HashTable s k v
        -> k
@@ -321,7 +321,7 @@ searchOne !keys !hashes !k !b0 !h = go b0
 
 ------------------------------------------------------------------------------
 -- | See the documentation for this function in
--- "Data.HashTable.Class#v:foldM".
+-- 'Data.HashTable.Class.foldM'.
 foldM :: (a -> (k,v) -> ST s a)
       -> a
       -> HashTable s k v
@@ -356,7 +356,7 @@ foldMWork f seed0 (HashTable sz _ hashes keys values _) = go 0 seed0
 
 ------------------------------------------------------------------------------
 -- | See the documentation for this function in
--- "Data.HashTable.Class#v:mapM_".
+-- 'Data.HashTable.Class.mapM_'.
 mapM_ :: ((k,v) -> ST s a)
       -> HashTable s k v
       -> ST s ()
