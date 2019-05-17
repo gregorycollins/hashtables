@@ -112,4 +112,8 @@ length (IA a) = A.sizeofMutableByteArray a `div` wordSizeInBytes
 toPtr :: IntArray s -> Ptr a
 toPtr (IA a) = Ptr a#
   where
+#if MIN_VERSION_primitive(0,7,0)
+    !(Ptr !a#) = A.mutableByteArrayContents a
+#else
     !(Addr !a#) = A.mutableByteArrayContents a
+#endif
