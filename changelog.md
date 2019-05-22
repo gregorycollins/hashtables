@@ -2,6 +2,10 @@
 
 ## 1.2.3.2
 
+  - CPP fix for breakage caused by primitive 0.7 (thx Carter)
+
+  - Fix some haddock syntax errors (thx Frederik Hanghøj Iversen)
+
   - Fix typo in module reference (thx Don Allen)
 
 ## 1.2.3.1
@@ -11,9 +15,9 @@
 ## 1.2.3.0
 
   - update for Semigroup/monoid breakage with GHC 8.4 (thx Fumiaki Kinoshita)
-  
+
   - Implement mutateST and mutateIO (thx Andy Morris)
-  
+
   - Fix build breakage w/ "pre" function (thx Andy Morris)
 
 ## 1.2.2.1
