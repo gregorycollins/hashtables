@@ -96,6 +96,7 @@ Description:
 
 Extra-Source-Files:
   README.md,
+  cabal.project,
   haddock.sh,
   benchmark/hashtable-benchmark.cabal,
   benchmark/LICENSE,
