@@ -350,7 +350,7 @@ mutateST bucketKey !k !f
                 return (hw', mbk, a)
     | otherwise = mutate' $ fromKey bucketKey
   where
-    mutate' (Bucket sz hwRef keys values) = do
+    mutate' (Bucket _sz hwRef keys values) = do
         hw <- readSTRef hwRef
         pos <- findPosition hw (hw-1)
         mv <- do
@@ -363,10 +363,10 @@ mutateST bucketKey !k !f
             (Nothing, (Just v', a)) -> do
                 (!hw', mbk) <- snoc bucketKey k v'
                 return (hw', mbk, a)
-            (Just v, (Just v', a)) -> do
+            (Just _v, (Just v', a)) -> do
                 writeArray values pos v'
                 return (hw, Nothing, a)
-            (Just v, (Nothing, a)) -> do
+            (Just _v, (Nothing, a)) -> do
                 move (hw-1) pos keys
                 move (hw-1) pos values
                 let !hw' = hw-1
