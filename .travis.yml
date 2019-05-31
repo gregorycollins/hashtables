@@ -111,7 +111,6 @@ install:
     echo "              8f79fd2389ab2967354407ec852cbe73f2e8635793ac446d09461ffb99527f6e" >> $CABALHOME/config
     echo "   key-threshold: 3"                                                            >> $CABALHOME/config
     fi
-  - "echo 'jobs: 2' >> $CABALHOME/config"
   - cat $CABALHOME/config
   - rm -fv cabal.project cabal.project.local cabal.project.freeze
   - travis_retry ${CABAL} v2-update -v
@@ -122,13 +121,14 @@ install:
     echo 'packages: "."' >> cabal.project
   - |
     echo "write-ghc-environment-files: always" >> cabal.project
-  - "for pkg in $($HCPKG list --simple-output); do echo $pkg | sed 's/-[^-]*$//' | (grep -vE -- '^(hashtables|transformers)$' || true) | sed 's/^/constraints: /' | sed 's/$/ installed/' >> cabal.project.local; done"
+  - "for pkg in $($HCPKG list --simple-output); do echo $pkg | sed 's/-[^-]*$//' | (grep -vE -- '^(hashtables)$' || true) | sed 's/^/constraints: /' | sed 's/$/ installed/' >> cabal.project.local; done"
   - cat cabal.project || true
   - cat cabal.project.local || true
   - if [ -f "./configure.ac" ]; then (cd "." && autoreconf -i); fi
   - ${CABAL} v2-freeze -w ${HC} ${TEST} ${BENCH} | color_cabal_output
   - "cat cabal.project.freeze | sed -E 's/^(constraints: *| *)//' | sed 's/any.//'"
   - rm  cabal.project.freeze
+  - ${CABAL} v2-build -w ${HC} ${TEST} ${BENCH} --dep -j2 all | color_cabal_output
 script:
   - DISTDIR=$(mktemp -d /tmp/dist-test.XXXX)
   # Packaging...
@@ -144,7 +144,7 @@ script:
     echo 'packages: "hashtables-*/*.cabal"' >> cabal.project
   - |
     echo "write-ghc-environment-files: always" >> cabal.project
-  - "for pkg in $($HCPKG list --simple-output); do echo $pkg | sed 's/-[^-]*$//' | (grep -vE -- '^(hashtables|transformers)$' || true) | sed 's/^/constraints: /' | sed 's/$/ installed/' >> cabal.project.local; done"
+  - "for pkg in $($HCPKG list --simple-output); do echo $pkg | sed 's/-[^-]*$//' | (grep -vE -- '^(hashtables)$' || true) | sed 's/^/constraints: /' | sed 's/$/ installed/' >> cabal.project.local; done"
   - cat cabal.project || true
   - cat cabal.project.local || true
   # Building with tests and benchmarks...
