@@ -20,7 +20,9 @@ module Data.HashTable.Internal.IntArray
 import           Control.Monad.ST
 import           Data.Bits
 import qualified Data.Primitive.ByteArray as A
+#if !MIN_VERSION_primitive(0,7,0)
 import           Data.Primitive.Types     (Addr (..))
+#endif
 import           GHC.Exts
 import           GHC.Word
 import           Prelude                  hiding (length)

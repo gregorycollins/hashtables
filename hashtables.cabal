@@ -1,15 +1,19 @@
+Cabal-Version: 2.2
 Name:                hashtables
 Version:             1.2.3.2
 Synopsis:            Mutable hash tables in the ST monad
 Homepage:            http://github.com/gregorycollins/hashtables
-License:             BSD3
+License:             BSD-3-Clause
 License-file:        LICENSE
 Author:              Gregory Collins
 Maintainer:          greg@gregorycollins.net, mgoremeier@gmail.com
 Copyright:           (c) 2011-2014, Google, Inc., 2016-present contributors
 Category:            Data
 Build-type:          Simple
-Cabal-version:       >= 1.8
+
+
+tested-with: GHC==8.8.1,GHC==8.6.5, GHC==8.4.4, GHC==8.2.2, GHC==8.0.2, GHC==7.10.3, GHC==7.8.4
+
 
 Description:
   This package provides a couple of different implementations of mutable hash
@@ -134,6 +138,12 @@ Flag bounds-checking
 Flag debug
   Description: if on, spew debugging output to stdout
   Default: False
+  Manual: True
+
+Flag detailed-profiling
+  Description: add detailed profiling information to profiled build-depends
+  Default: False
+  Manual: True
 
 Flag sse42
   Description: if on, use SSE 4.2 extensions to search cache lines very
@@ -146,6 +156,7 @@ Flag portable
 
 
 Library
+  Default-Language: Haskell2010
   hs-source-dirs:    src
 
   if flag(sse42) && !flag(portable)
@@ -191,10 +202,18 @@ Library
   if flag(bounds-checking)
     cpp-options: -DBOUNDS_CHECKING
 
-  ghc-prof-options: -auto-all
+  if flag(detailed-profiling)
+    if impl(ghc >= 7.4.1)
+     ghc-prof-options: -fprof-auto
+    if impl(ghc < 7.4.1)
+     ghc-prof-options: -auto-all
 
   if impl(ghc >= 6.12.0)
     ghc-options: -Wall -fwarn-tabs -funbox-strict-fields -O2
                  -fno-warn-unused-do-bind
   else
     ghc-options: -Wall -fwarn-tabs -funbox-strict-fields -O2
+
+source-repository head
+  type:     git
+  location: https://github.com/gregorycollins/hashtables.git

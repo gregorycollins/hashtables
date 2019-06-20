@@ -432,14 +432,14 @@ mutate' :: (Eq k, Hashable k) =>
         -> (Maybe v -> ST s (Maybe v, a))
         -> ST s (HashTable_ s k v, a)
 mutate' ht@(HashTable sz _ hashes keys values _) !k !f = do
-    !(maybeVal, idx, hashCode) <- lookupSlot
+    !(maybeVal, idx, _hashCode) <- lookupSlot
     !fRes <- f maybeVal
     case (maybeVal, fRes) of
         (Nothing, (Nothing, a)) -> return (ht, a)
-        (Just v, (Just v', a)) -> do
+        (Just _v, (Just v', a)) -> do
             writeArray values idx v'
             return (ht, a)
-        (Just v, (Nothing, a)) -> do
+        (Just _v, (Nothing, a)) -> do
             deleteFromSlot ht idx
             return (ht, a)
         (Nothing, (Just v', a)) -> do
@@ -486,7 +486,7 @@ mutate' ht@(HashTable sz _ hashes keys values _) !k !f = do
               else do
                 result <- cuckooOrFail ht h1 h2 b1 b2 k v
                 maybe (return ht)
-                      (\(k', v') -> do
+                      (\(_k', _v') -> do
                           newHt <- grow ht k v
                           return newHt)
                       result
@@ -498,7 +498,7 @@ deleteFromSlot :: (Eq k, Hashable k) =>
                   HashTable_ s k v
                -> Int
                -> ST s ()
-deleteFromSlot ht@(HashTable _ _ hashes keys values _) idx = do
+deleteFromSlot _ht@(HashTable _ _ hashes keys values _) idx = do
     U.writeArray hashes idx emptyMarker
     writeArray keys idx undefined
     writeArray values idx undefined
@@ -513,7 +513,7 @@ insertIntoSlot :: (Eq k, Hashable k) =>
                -> k
                -> v
                -> ST s ()
-insertIntoSlot ht@(HashTable _ _ hashes keys values _) idx he k v = do
+insertIntoSlot _ht@(HashTable _ _ hashes keys values _) idx he k v = do
     U.writeArray hashes idx he
     writeArray keys idx k
     writeArray values idx v
