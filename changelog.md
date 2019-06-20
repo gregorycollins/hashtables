@@ -1,5 +1,9 @@
 # Hashtables changelog
 
+## 1.2.3.3
+
+Fix build with certain versions of `primitive` (thx again Carter)
+
 ## 1.2.3.2
 
   - CPP fix for breakage caused by primitive 0.7 (thx Carter)
