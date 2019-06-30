@@ -6,7 +6,7 @@ Homepage:            http://github.com/gregorycollins/hashtables
 License:             BSD-3-Clause
 License-file:        LICENSE
 Author:              Gregory Collins
-Maintainer:          greg@gregorycollins.net, mgoremeier@gmail.com
+Maintainer:          greg@gregorycollins.net, mgoremeier@gmail.com, erikd@mega-nerd.com
 Copyright:           (c) 2011-2014, Google, Inc., 2016-present contributors
 Category:            Data
 Build-type:          Simple
