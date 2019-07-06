@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE CPP #-}
 
 module Data.HashTable.Internal.CheapPseudoRandomBitStream
   ( BitStream
@@ -13,7 +14,12 @@ import           Data.Bits                     ((.&.))
 import           Data.STRef
 import           Data.Vector.Unboxed           (Vector)
 import qualified Data.Vector.Unboxed           as V
+
+#if __GLASGOW_HASKELL__ >= 808
+import           Data.Word                     (Word32, Word64)
+#else
 import           Data.Word                     (Word, Word32, Word64)
+#endif
 
 import           Data.HashTable.Internal.Utils
 

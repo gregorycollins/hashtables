@@ -38,7 +38,9 @@ import           GHC.Int
 import           Data.HashTable.Internal.Utils
 import           GHC.Exts
 
-#if __GLASGOW_HASKELL__ >= 707
+#if __GLASGOW_HASKELL__ >= 808
+-- Nothing to do here.
+#elif __GLASGOW_HASKELL__ >= 707
 import           GHC.Exts                         (isTrue#)
 #else
 isTrue# :: Bool -> Bool

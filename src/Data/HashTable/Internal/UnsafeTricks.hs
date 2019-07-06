@@ -23,7 +23,9 @@ import qualified Data.Vector.Mutable as M
 import           GHC.Exts
 import           Unsafe.Coerce
 
-#if __GLASGOW_HASKELL__ >= 707
+#if __GLASGOW_HASKELL__ >= 808
+-- Nothing to do here.
+#elif __GLASGOW_HASKELL__ >= 707
 import           GHC.Exts                         (isTrue#)
 #else
 isTrue# :: Bool -> Bool
@@ -38,7 +40,7 @@ isTrue# = id
 type Key a = Any
 
 #else
-data Key a = Key !a 
+data Key a = Key !a
            | EmptyElement
            | DeletedElement
   deriving (Show)
