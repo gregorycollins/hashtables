@@ -1,5 +1,9 @@
 # Hashtables changelog
 
+## 1.2.3.4
+
+Fix build with GHC 8.8.
+
 ## 1.2.3.3
 
 Fix build with certain versions of `primitive` (thx again Carter)
