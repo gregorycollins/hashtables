@@ -120,8 +120,6 @@ Extra-Source-Files:
   changelog.md,
   test/compute-overhead/ComputeOverhead.hs,
   test/hashtables-test.cabal,
-  test/runTestsAndCoverage.sh,
-  test/runTestsNoCoverage.sh,
   test/suite/Data/HashTable/Test/Common.hs,
   test/suite/TestSuite.hs
 
