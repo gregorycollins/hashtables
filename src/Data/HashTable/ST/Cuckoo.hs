@@ -486,8 +486,8 @@ mutate' ht@(HashTable sz _ hashes keys values _) !k !f = do
               else do
                 result <- cuckooOrFail ht h1 h2 b1 b2 k v
                 maybe (return ht)
-                      (\(_k', _v') -> do
-                          newHt <- grow ht k v
+                      (\(k', v') -> do
+                          newHt <- grow ht k' v'
                           return newHt)
                       result
 {-# INLINE mutate' #-}
