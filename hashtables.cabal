@@ -214,6 +214,64 @@ Library
   else
     ghc-options: -Wall -fwarn-tabs -funbox-strict-fields -O2
 
+test-suite testsuite
+  hs-source-dirs:    src test/suite
+  main-is:           TestSuite.hs
+  type: exitcode-stdio-1.0
+
+  if flag(sse42) && !flag(portable)
+    cc-options:  -DUSE_SSE_4_2 -msse4.2
+    cpp-options: -DUSE_SSE_4_2
+    C-sources:   cbits/sse-42.c
+
+  if !flag(portable) && !flag(sse42)
+    C-sources:       cbits/default.c
+
+  if !flag(portable)
+    C-sources:       cbits/common.c
+
+  ghc-prof-options:  -prof -auto-all
+
+  if flag(portable) || !flag(unsafe-tricks)
+    ghc-options: -fhpc
+
+  if flag(portable)
+    cpp-options: -DNO_C_SEARCH -DPORTABLE
+
+  if !flag(portable) && flag(unsafe-tricks) && impl(ghc)
+    cpp-options: -DUNSAFETRICKS
+    build-depends: ghc-prim
+
+  if flag(debug)
+    cpp-options: -DDEBUG
+
+  if flag(bounds-checking)
+    cpp-options: -DBOUNDS_CHECKING
+
+  Build-depends:     base                       >= 4     && <5,
+                     hashable >= 1.1 && <1.2 || >= 1.2.1 && <1.3,
+                     mwc-random                 >= 0.8   && <0.14,
+                     primitive,
+                     QuickCheck                 >= 2.3.0.2,
+                     HUnit                      >= 1.2   && <2,
+                     test-framework             >= 0.3.1 && <0.9,
+                     test-framework-quickcheck2 >= 0.2.6 && <0.4,
+                     test-framework-hunit       >= 0.2.6 && <3,
+                     vector                     >= 0.7
+
+  cpp-options: -DTESTSUITE
+
+  if impl(ghc >= 7)
+    ghc-options: -rtsopts
+
+  if impl(ghc >= 6.12.0)
+    ghc-options: -Wall -fwarn-tabs -funbox-strict-fields -O2
+                 -fno-warn-unused-do-bind -threaded
+  else
+    ghc-options: -Wall -fwarn-tabs -funbox-strict-fields -O2 -threaded
+
+
+
 source-repository head
   type:     git
   location: https://github.com/gregorycollins/hashtables.git
