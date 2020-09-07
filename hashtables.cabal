@@ -230,9 +230,6 @@ test-suite testsuite
 
   ghc-prof-options:  -prof -auto-all
 
-  if flag(portable) || !flag(unsafe-tricks)
-    ghc-options: -fhpc
-
   if flag(portable)
     cpp-options: -DNO_C_SEARCH -DPORTABLE
 
