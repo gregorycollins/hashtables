@@ -19,3 +19,4 @@ test/.hpc
 test/.hpc/**
 test/dist
 test/dist/**
+.ghc*
