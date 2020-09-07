@@ -1,5 +1,10 @@
 # Hashtables changelog
 
+## 1.2.4.0
+
+Fix a [correctness bug](https://github.com/gregorycollins/hashtables/issues/55)
+with cuckoo hash tables and the new `mutate` function introduced in 1.2.3.0.
+
 ## 1.2.3.4
 
 Fix build with GHC 8.8.
