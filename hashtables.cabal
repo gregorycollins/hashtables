@@ -213,6 +213,7 @@ Library
     ghc-options: -Wall -fwarn-tabs -funbox-strict-fields -O2
 
 test-suite testsuite
+  Default-Language: Haskell2010
   hs-source-dirs:    src test/suite
   main-is:           TestSuite.hs
   type: exitcode-stdio-1.0
@@ -228,7 +229,7 @@ test-suite testsuite
   if !flag(portable)
     C-sources:       cbits/common.c
 
-  ghc-prof-options:  -prof -auto-all
+  ghc-prof-options:  -auto-all
 
   if flag(portable)
     cpp-options: -DNO_C_SEARCH -DPORTABLE
