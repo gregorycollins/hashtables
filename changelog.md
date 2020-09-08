@@ -1,9 +1,15 @@
 # Hashtables changelog
 
+## 1.2.4.1
+
+Update some test suite dep upper bounds.
+
 ## 1.2.4.0
 
-Fix a [correctness bug](https://github.com/gregorycollins/hashtables/issues/55)
+ - Fix a [correctness bug](https://github.com/gregorycollins/hashtables/issues/55)
 with cuckoo hash tables and the new `mutate` function introduced in 1.2.3.0.
+
+ - Bring test suite into main .cabal file
 
 ## 1.2.3.4
 
