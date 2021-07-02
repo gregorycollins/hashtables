@@ -84,6 +84,7 @@ module Data.HashTable.ST.Basic
   ( HashTable
   , new
   , newSized
+  , size
   , delete
   , lookup
   , insert
@@ -202,7 +203,6 @@ newSized n = do
     newRef ht
 {-# INLINE newSized #-}
 
-
 ------------------------------------------------------------------------------
 newSizedReal :: Int -> ST s (HashTable_ s k v)
 newSizedReal m = do
@@ -215,6 +215,14 @@ newSizedReal m = do
     v  <- newArray m undefined
     ld <- newSizeRefs
     return $! HashTable m ld h k v
+
+------------------------------------------------------------------------------
+-- | Returns the number of mappings currently stored in this table. /O(1)/
+size :: HashTable s k v -> ST s Int
+size htRef = do
+    HashTable _ sizeRefs _ _ _ <- readRef htRef
+    readLoad sizeRefs
+{-# INLINE size #-}
 
 
 ------------------------------------------------------------------------------
