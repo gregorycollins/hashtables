@@ -218,6 +218,21 @@ test-suite testsuite
   main-is:           TestSuite.hs
   type: exitcode-stdio-1.0
 
+  other-modules:
+        Data.HashTable.Class
+        Data.HashTable.IO
+        Data.HashTable.Internal.Array
+        Data.HashTable.Internal.CacheLine
+        Data.HashTable.Internal.CheapPseudoRandomBitStream
+        Data.HashTable.Internal.IntArray
+        Data.HashTable.Internal.Linear.Bucket
+        Data.HashTable.Internal.UnsafeTricks
+        Data.HashTable.Internal.Utils
+        Data.HashTable.ST.Basic
+        Data.HashTable.ST.Cuckoo
+        Data.HashTable.ST.Linear
+        Data.HashTable.Test.Common
+
   if flag(sse42) && !flag(portable)
     cc-options:  -DUSE_SSE_4_2 -msse4.2
     cpp-options: -DUSE_SSE_4_2
