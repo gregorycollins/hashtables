@@ -48,10 +48,10 @@ module Data.HashTable.Class
 
 #if !MIN_VERSION_base(4,8,0)
 import           Control.Applicative
+import           Data.Word           (Word)
 #endif
 import           Control.Monad.ST
 import           Data.Hashable
-import           Data.Word           (Word)
 import           Prelude             hiding (mapM_)
 
 -- | A typeclass for hash tables in the 'ST' monad. The operations on these
