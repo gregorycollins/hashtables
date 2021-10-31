@@ -52,7 +52,7 @@ type Elem = Word16
 
 ------------------------------------------------------------------------------
 primWordToElem :: Word# -> Elem
-primWordToElem = W16#
+primWordToElem w# = W16# (wordToWord16Compat# w#)
 
 
 ------------------------------------------------------------------------------
@@ -63,7 +63,7 @@ elemToInt e = let !i# = elemToInt# e
 
 ------------------------------------------------------------------------------
 elemToInt# :: Elem -> Int#
-elemToInt# (W16# w#) = word2Int# w#
+elemToInt# (W16# w#) = word2Int# (word16ToWordCompat# w#)
 
 
 ------------------------------------------------------------------------------
@@ -118,4 +118,18 @@ toPtr (IA a) = Ptr a#
     !(Ptr !a#) = A.mutableByteArrayContents a
 #else
     !(Addr !a#) = A.mutableByteArrayContents a
+#endif
+
+#if MIN_VERSION_base(4,16,0)
+word16ToWordCompat# :: Word16# -> Word#
+word16ToWordCompat# = word16ToWord#
+
+wordToWord16Compat# :: Word# -> Word16#
+wordToWord16Compat# = wordToWord16#
+#else
+word16ToWordCompat# :: Word# -> Word#
+word16ToWordCompat# x = x
+
+wordToWord16Compat# :: Word# -> Word#
+wordToWord16Compat# x = x
 #endif
