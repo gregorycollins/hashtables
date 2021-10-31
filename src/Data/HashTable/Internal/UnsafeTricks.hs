@@ -22,16 +22,6 @@ import qualified Data.Vector.Mutable as M
 #ifdef UNSAFETRICKS
 import           GHC.Exts
 import           Unsafe.Coerce
-
-#if __GLASGOW_HASKELL__ >= 808
--- Nothing to do here.
-#elif __GLASGOW_HASKELL__ >= 707
-import           GHC.Exts                         (isTrue#)
-#else
-isTrue# :: Bool -> Bool
-isTrue# = id
-#endif
-
 #endif
 
 

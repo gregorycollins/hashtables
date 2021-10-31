@@ -15,10 +15,9 @@ import           Data.STRef
 import           Data.Vector.Unboxed           (Vector)
 import qualified Data.Vector.Unboxed           as V
 
-#if __GLASGOW_HASKELL__ >= 808
 import           Data.Word                     (Word32, Word64)
-#else
-import           Data.Word                     (Word, Word32, Word64)
+#if !MIN_VERSION_base(4,8,0)
+import           Data.Word                     (Word)
 #endif
 
 import           Data.HashTable.Internal.Utils
