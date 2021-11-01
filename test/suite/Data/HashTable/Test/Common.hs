@@ -501,7 +501,7 @@ testNastyFullLookup prefix dummyArg = testCase (prefix ++ "/nastyFullLookup") go
 
 ------------------------------------------------------------------------------
 initializeRNG :: PropertyM IO GenIO
-initializeRNG = run $ withSystemRandom (return :: GenIO -> IO GenIO)
+initializeRNG = run createSystemRandom
 
 
 ------------------------------------------------------------------------------
