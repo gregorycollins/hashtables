@@ -1,5 +1,11 @@
 # Hashtables changelog
 
+## 1.2.4.2
+
+Cabal file: add missing other-modules
+Silence import warnings. Know that we require ghc >= 7.8.
+Fix build with GHC 9.2
+
 ## 1.2.4.1
 
 Update some test suite dep upper bounds.
