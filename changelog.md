@@ -1,5 +1,10 @@
 # Hashtables changelog
 
+## 1.3
+
+Support Hashable 1.4. This new version of Hashable drops the Eq constraint, so the Eq constraint
+needs to be dropped in the SPECIALIZE statements in Hashtables.
+
 ## 1.2.4.2
 
 Cabal file: add missing other-modules
