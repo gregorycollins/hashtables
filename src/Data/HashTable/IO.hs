@@ -123,11 +123,11 @@ insert   :: (C.HashTable h, Eq k, Hashable k) =>
             IOHashTable h k v -> k -> v -> IO ()
 insert h k v = stToIO $ C.insert h k v
 {-# INLINE insert #-}
-{-# SPECIALIZE INLINE insert :: (Eq k, Hashable k) =>
+{-# SPECIALIZE INLINE insert :: Hashable k =>
                          BasicHashTable  k v -> k -> v -> IO () #-}
-{-# SPECIALIZE INLINE insert :: (Eq k, Hashable k) =>
+{-# SPECIALIZE INLINE insert :: Hashable k =>
                          LinearHashTable k v -> k -> v -> IO () #-}
-{-# SPECIALIZE INLINE insert :: (Eq k, Hashable k) =>
+{-# SPECIALIZE INLINE insert :: Hashable k =>
                          CuckooHashTable k v -> k -> v -> IO () #-}
 
 
@@ -137,11 +137,11 @@ delete   :: (C.HashTable h, Eq k, Hashable k) =>
             IOHashTable h k v -> k -> IO ()
 delete h k = stToIO $ C.delete h k
 {-# INLINE delete #-}
-{-# SPECIALIZE INLINE delete :: (Eq k, Hashable k) =>
+{-# SPECIALIZE INLINE delete :: Hashable k =>
                          BasicHashTable  k v -> k -> IO () #-}
-{-# SPECIALIZE INLINE delete :: (Eq k, Hashable k) =>
+{-# SPECIALIZE INLINE delete :: Hashable k =>
                          LinearHashTable k v -> k -> IO () #-}
-{-# SPECIALIZE INLINE delete :: (Eq k, Hashable k) =>
+{-# SPECIALIZE INLINE delete :: Hashable k =>
                          CuckooHashTable k v -> k -> IO () #-}
 
 
@@ -151,11 +151,11 @@ lookup   :: (C.HashTable h, Eq k, Hashable k) =>
             IOHashTable h k v -> k -> IO (Maybe v)
 lookup h k = stToIO $ C.lookup h k
 {-# INLINE lookup #-}
-{-# SPECIALIZE INLINE lookup :: (Eq k, Hashable k) =>
+{-# SPECIALIZE INLINE lookup :: Hashable k =>
                          BasicHashTable  k v -> k -> IO (Maybe v) #-}
-{-# SPECIALIZE INLINE lookup :: (Eq k, Hashable k) =>
+{-# SPECIALIZE INLINE lookup :: Hashable k =>
                          LinearHashTable k v -> k -> IO (Maybe v) #-}
-{-# SPECIALIZE INLINE lookup :: (Eq k, Hashable k) =>
+{-# SPECIALIZE INLINE lookup :: Hashable k =>
                          CuckooHashTable k v -> k -> IO (Maybe v) #-}
 
 ------------------------------------------------------------------------------
@@ -164,11 +164,11 @@ lookupIndex   :: (C.HashTable h, Eq k, Hashable k) =>
                  IOHashTable h k v -> k -> IO (Maybe Word)
 lookupIndex h k = stToIO $ C.lookupIndex h k
 {-# INLINE lookupIndex #-}
-{-# SPECIALIZE INLINE lookupIndex :: (Eq k, Hashable k) =>
+{-# SPECIALIZE INLINE lookupIndex :: Hashable k =>
                          BasicHashTable  k v -> k -> IO (Maybe Word) #-}
-{-# SPECIALIZE INLINE lookupIndex :: (Eq k, Hashable k) =>
+{-# SPECIALIZE INLINE lookupIndex :: Hashable k =>
                          LinearHashTable k v -> k -> IO (Maybe Word) #-}
-{-# SPECIALIZE INLINE lookupIndex :: (Eq k, Hashable k) =>
+{-# SPECIALIZE INLINE lookupIndex :: Hashable k =>
                          CuckooHashTable k v -> k -> IO (Maybe Word) #-}
 
 ------------------------------------------------------------------------------
@@ -177,11 +177,11 @@ nextByIndex   :: (C.HashTable h, Eq k, Hashable k) =>
                  IOHashTable h k v -> Word -> IO (Maybe (Word,k,v))
 nextByIndex h k = stToIO $ C.nextByIndex h k
 {-# INLINE nextByIndex #-}
-{-# SPECIALIZE INLINE nextByIndex :: (Eq k, Hashable k) =>
+{-# SPECIALIZE INLINE nextByIndex :: Hashable k =>
                          BasicHashTable  k v -> Word -> IO (Maybe (Word,k,v)) #-}
-{-# SPECIALIZE INLINE nextByIndex :: (Eq k, Hashable k) =>
+{-# SPECIALIZE INLINE nextByIndex :: Hashable k =>
                          LinearHashTable k v -> Word -> IO (Maybe (Word,k,v)) #-}
-{-# SPECIALIZE INLINE nextByIndex :: (Eq k, Hashable k) =>
+{-# SPECIALIZE INLINE nextByIndex :: Hashable k =>
                          CuckooHashTable k v -> Word -> IO (Maybe (Word,k,v)) #-}
 
 ------------------------------------------------------------------------------
@@ -190,11 +190,11 @@ mutateIO   :: (C.HashTable h, Eq k, Hashable k) =>
               IOHashTable h k v -> k -> (Maybe v -> IO (Maybe v, a)) -> IO a
 mutateIO h k f = stToIO $ C.mutateST h k (ioToST . f)
 {-# INLINE mutateIO #-}
-{-# SPECIALIZE INLINE mutateIO :: (Eq k, Hashable k) =>
+{-# SPECIALIZE INLINE mutateIO :: Hashable k =>
                          BasicHashTable  k v -> k -> (Maybe v -> IO (Maybe v, a)) -> IO a #-}
-{-# SPECIALIZE INLINE mutateIO :: (Eq k, Hashable k) =>
+{-# SPECIALIZE INLINE mutateIO :: Hashable k =>
                          LinearHashTable k v -> k -> (Maybe v -> IO (Maybe v, a)) -> IO a #-}
-{-# SPECIALIZE INLINE mutateIO :: (Eq k, Hashable k) =>
+{-# SPECIALIZE INLINE mutateIO :: Hashable k =>
                          CuckooHashTable k v -> k -> (Maybe v -> IO (Maybe v, a)) -> IO a #-}
 
 ------------------------------------------------------------------------------
@@ -203,11 +203,11 @@ mutate   :: (C.HashTable h, Eq k, Hashable k) =>
             IOHashTable h k v -> k -> (Maybe v -> (Maybe v, a)) -> IO a
 mutate h k f = stToIO $ C.mutate h k f
 {-# INLINE mutate #-}
-{-# SPECIALIZE INLINE mutate :: (Eq k, Hashable k) =>
+{-# SPECIALIZE INLINE mutate :: Hashable k =>
                          BasicHashTable  k v -> k -> (Maybe v -> (Maybe v, a)) -> IO a #-}
-{-# SPECIALIZE INLINE mutate :: (Eq k, Hashable k) =>
+{-# SPECIALIZE INLINE mutate :: Hashable k =>
                          LinearHashTable k v -> k -> (Maybe v -> (Maybe v, a)) -> IO a #-}
-{-# SPECIALIZE INLINE mutate :: (Eq k, Hashable k) =>
+{-# SPECIALIZE INLINE mutate :: Hashable k =>
                          CuckooHashTable k v -> k -> (Maybe v -> (Maybe v, a)) -> IO a #-}
 
 
@@ -218,11 +218,11 @@ fromList :: (C.HashTable h, Eq k, Hashable k) =>
             [(k,v)] -> IO (IOHashTable h k v)
 fromList = stToIO . C.fromList
 {-# INLINE fromList #-}
-{-# SPECIALIZE INLINE fromList :: (Eq k, Hashable k) =>
+{-# SPECIALIZE INLINE fromList :: Hashable k =>
                            [(k,v)] -> IO (BasicHashTable  k v) #-}
-{-# SPECIALIZE INLINE fromList :: (Eq k, Hashable k) =>
+{-# SPECIALIZE INLINE fromList :: Hashable k =>
                            [(k,v)] -> IO (LinearHashTable k v) #-}
-{-# SPECIALIZE INLINE fromList :: (Eq k, Hashable k) =>
+{-# SPECIALIZE INLINE fromList :: Hashable k =>
                            [(k,v)] -> IO (CuckooHashTable k v) #-}
 
 
@@ -233,11 +233,11 @@ fromListWithSizeHint :: (C.HashTable h, Eq k, Hashable k) =>
                         Int -> [(k,v)] -> IO (IOHashTable h k v)
 fromListWithSizeHint n = stToIO . C.fromListWithSizeHint n
 {-# INLINE fromListWithSizeHint #-}
-{-# SPECIALIZE INLINE fromListWithSizeHint :: (Eq k, Hashable k) =>
+{-# SPECIALIZE INLINE fromListWithSizeHint :: Hashable k =>
                            Int -> [(k,v)] -> IO (BasicHashTable  k v) #-}
-{-# SPECIALIZE INLINE fromListWithSizeHint :: (Eq k, Hashable k) =>
+{-# SPECIALIZE INLINE fromListWithSizeHint :: Hashable k =>
                            Int -> [(k,v)] -> IO (LinearHashTable k v) #-}
-{-# SPECIALIZE INLINE fromListWithSizeHint :: (Eq k, Hashable k) =>
+{-# SPECIALIZE INLINE fromListWithSizeHint :: Hashable k =>
                            Int -> [(k,v)] -> IO (CuckooHashTable k v) #-}
 
 
@@ -247,11 +247,11 @@ toList   :: (C.HashTable h, Eq k, Hashable k) =>
             IOHashTable h k v -> IO [(k,v)]
 toList = stToIO . C.toList
 {-# INLINE toList #-}
-{-# SPECIALIZE INLINE toList :: (Eq k, Hashable k) =>
+{-# SPECIALIZE INLINE toList :: Hashable k =>
                          BasicHashTable  k v -> IO [(k,v)] #-}
-{-# SPECIALIZE INLINE toList :: (Eq k, Hashable k) =>
+{-# SPECIALIZE INLINE toList :: Hashable k =>
                          LinearHashTable k v -> IO [(k,v)] #-}
-{-# SPECIALIZE INLINE toList :: (Eq k, Hashable k) =>
+{-# SPECIALIZE INLINE toList :: Hashable k =>
                          CuckooHashTable k v -> IO [(k,v)] #-}
 
 
