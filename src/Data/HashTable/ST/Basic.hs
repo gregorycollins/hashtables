@@ -519,15 +519,19 @@ newtype Slot = Slot { _slot :: Int } deriving (Show)
 
 #if MIN_VERSION_base(4,9,0)
 instance Semigroup Slot where
- (<>) = mappend
+  (<>) = slotMappend
 #endif
 
 instance Monoid Slot where
-    mempty = Slot maxBound
-    (Slot x1) `mappend` (Slot x2) =
-        let !m = mask x1 maxBound
-        in Slot $! (complement m .&. x1) .|. (m .&. x2)
+  mempty = Slot maxBound
+#if ! MIN_VERSION_base(4,11,0)
+  mappend = slotMappend
+#endif
 
+slotMappend :: Slot -> Slot -> Slot
+slotMappend (Slot x1) (Slot x2) =
+  let !m = mask x1 maxBound
+  in Slot $! (complement m .&. x1) .|. (m .&. x2)
 
 ------------------------------------------------------------------------------
 -- findSafeSlots return type
@@ -841,3 +845,4 @@ nextByIndex htRef i0 = readRef htRef >>= work
                 let !i' = fromIntegral i
                 return (Just (i', k, v))
 {-# INLINE nextByIndex #-}
+
