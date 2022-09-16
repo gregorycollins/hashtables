@@ -33,6 +33,9 @@ before_cache:
   - rm -rfv $CABALHOME/packages/head.hackage
 jobs:
   include:
+    - compiler: ghc-9.4.2
+      addons: {"apt":{"packages":["ghc-9.4.2","cabal-install-3.6"],"sources":[{"key_url":"https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x063dab2bdc0b3f9fcebc378bff3aeacef6f88286","sourceline":"deb http://ppa.launchpad.net/hvr/ghc/ubuntu bionic main"}]}}
+      os: linux
     - compiler: ghc-9.2.4
       addons: {"apt":{"packages":["ghc-9.2.4","cabal-install-3.6"],"sources":[{"key_url":"https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x063dab2bdc0b3f9fcebc378bff3aeacef6f88286","sourceline":"deb http://ppa.launchpad.net/hvr/ghc/ubuntu bionic main"}]}}
       os: linux
@@ -85,7 +88,7 @@ before_install:
   - TEST=--enable-tests
   - BENCH=--enable-benchmarks
   - HEADHACKAGE=false
-  - if [ $((HCNUMVER > 90204)) -ne 0 ] ; then HEADHACKAGE=true ; fi
+  - if [ $((HCNUMVER > 90402)) -ne 0 ] ; then HEADHACKAGE=true ; fi
   - rm -f $CABALHOME/config
   - |
     echo "verbose: normal +nowrap +markoutput"          >> $CABALHOME/config
