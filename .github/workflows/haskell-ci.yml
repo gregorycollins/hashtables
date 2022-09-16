@@ -8,9 +8,9 @@
 #
 # For more information, see https://github.com/haskell-CI/haskell-ci
 #
-# version: 0.13.20211030
+# version: 0.15.20220826
 #
-# REGENDATA ("0.13.20211030",["github","hashtables.cabal"])
+# REGENDATA ("0.15.20220826",["github","hashtables.cabal"])
 #
 name: Haskell-CI
 on:
@@ -19,16 +19,18 @@ on:
 jobs:
   linux:
     name: Haskell-CI - Linux - ${{ matrix.compiler }}
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
+    timeout-minutes:
+      60
     container:
       image: buildpack-deps:bionic
     continue-on-error: ${{ matrix.allow-failure }}
     strategy:
       matrix:
         include:
-          - compiler: ghc-9.2.1
+          - compiler: ghc-9.2.4
             compilerKind: ghc
-            compilerVersion: 9.2.1
+            compilerVersion: 9.2.4
             setup-method: ghcup
             allow-failure: false
           - compiler: ghc-9.0.1
@@ -84,18 +86,19 @@ jobs:
           apt-get install -y --no-install-recommends gnupg ca-certificates dirmngr curl git software-properties-common libtinfo5
           if [ "${{ matrix.setup-method }}" = ghcup ]; then
             mkdir -p "$HOME/.ghcup/bin"
-            curl -sL https://downloads.haskell.org/ghcup/0.1.17.3/x86_64-linux-ghcup-0.1.17.3 > "$HOME/.ghcup/bin/ghcup"
+            curl -sL https://downloads.haskell.org/ghcup/0.1.18.0/x86_64-linux-ghcup-0.1.18.0 > "$HOME/.ghcup/bin/ghcup"
             chmod a+x "$HOME/.ghcup/bin/ghcup"
-            "$HOME/.ghcup/bin/ghcup" install ghc "$HCVER"
-            "$HOME/.ghcup/bin/ghcup" install cabal 3.6.2.0
+            "$HOME/.ghcup/bin/ghcup" config add-release-channel https://raw.githubusercontent.com/haskell/ghcup-metadata/master/ghcup-prereleases-0.0.7.yaml;
+            "$HOME/.ghcup/bin/ghcup" install ghc "$HCVER" || (cat "$HOME"/.ghcup/logs/*.* && false)
+            "$HOME/.ghcup/bin/ghcup" install cabal 3.6.2.0 || (cat "$HOME"/.ghcup/logs/*.* && false)
           else
             apt-add-repository -y 'ppa:hvr/ghc'
             apt-get update
             apt-get install -y "$HCNAME"
             mkdir -p "$HOME/.ghcup/bin"
-            curl -sL https://downloads.haskell.org/ghcup/0.1.17.3/x86_64-linux-ghcup-0.1.17.3 > "$HOME/.ghcup/bin/ghcup"
+            curl -sL https://downloads.haskell.org/ghcup/0.1.18.0/x86_64-linux-ghcup-0.1.18.0 > "$HOME/.ghcup/bin/ghcup"
             chmod a+x "$HOME/.ghcup/bin/ghcup"
-            "$HOME/.ghcup/bin/ghcup" install cabal 3.6.2.0
+            "$HOME/.ghcup/bin/ghcup" install cabal 3.6.2.0 || (cat "$HOME"/.ghcup/logs/*.* && false)
           fi
         env:
           HCKIND: ${{ matrix.compilerKind }}
@@ -126,7 +129,7 @@ jobs:
           echo "HCNUMVER=$HCNUMVER" >> "$GITHUB_ENV"
           echo "ARG_TESTS=--enable-tests" >> "$GITHUB_ENV"
           echo "ARG_BENCH=--enable-benchmarks" >> "$GITHUB_ENV"
-          if [ $((HCNUMVER > 90201)) -ne 0 ] ; then echo "HEADHACKAGE=true" >> "$GITHUB_ENV" ; else echo "HEADHACKAGE=false" >> "$GITHUB_ENV" ; fi
+          if [ $((HCNUMVER > 90204)) -ne 0 ] ; then echo "HEADHACKAGE=true" >> "$GITHUB_ENV" ; else echo "HEADHACKAGE=false" >> "$GITHUB_ENV" ; fi
           echo "ARG_COMPILER=--$HCKIND --with-compiler=$HC" >> "$GITHUB_ENV"
           echo "GHCJSARITH=0" >> "$GITHUB_ENV"
         env:
@@ -164,8 +167,13 @@ jobs:
                         26021a13b401500c8eb2761ca95c61f2d625bfef951b939a8124ed12ecf07329
                         f76d08be13e9a61a377a85e2fb63f4c5435d40f8feb3e12eb05905edb8cdea89
              key-threshold: 3
+          active-repositories: hackage.haskell.org, head.hackage.ghc.haskell.org:override
           EOF
           fi
+          cat >> $CABAL_CONFIG <<EOF
+          program-default-options
+            ghc-options: $GHCJOBS +RTS -M3G -RTS
+          EOF
           cat $CABAL_CONFIG
       - name: versions
         run: |
@@ -174,7 +182,7 @@ jobs:
           $CABAL --version || true
       - name: update cabal index
         run: |
-          $CABAL update -v
+          $CABAL v2-update -v
       - name: install cabal-plan
         run: |
           mkdir -p $HOME/.cabal/bin
@@ -221,7 +229,7 @@ jobs:
           cat cabal.project.local
       - name: dump install plan
         run: |
-          $CABAL build $ARG_COMPILER $ARG_TESTS $ARG_BENCH --dry-run all
+          $CABAL v2-build $ARG_COMPILER $ARG_TESTS $ARG_BENCH --dry-run all
           cabal-plan
       - name: cache
         uses: actions/cache@v2
@@ -231,18 +239,18 @@ jobs:
           restore-keys: ${{ runner.os }}-${{ matrix.compiler }}-
       - name: install dependencies
         run: |
-          $CABAL build $ARG_COMPILER --disable-tests --disable-benchmarks --dependencies-only -j2 all
-          $CABAL build $ARG_COMPILER $ARG_TESTS $ARG_BENCH --dependencies-only -j2 all
+          $CABAL v2-build $ARG_COMPILER --disable-tests --disable-benchmarks --dependencies-only -j2 all
+          $CABAL v2-build $ARG_COMPILER $ARG_TESTS $ARG_BENCH --dependencies-only -j2 all
       - name: build
         run: |
-          $CABAL build $ARG_COMPILER $ARG_TESTS $ARG_BENCH all --write-ghc-environment-files=always
+          $CABAL v2-build $ARG_COMPILER $ARG_TESTS $ARG_BENCH all --write-ghc-environment-files=always
       - name: tests
         run: |
-          $CABAL test $ARG_COMPILER $ARG_TESTS $ARG_BENCH all --test-show-details=direct
+          $CABAL v2-test $ARG_COMPILER $ARG_TESTS $ARG_BENCH all --test-show-details=direct
       - name: cabal check
         run: |
           cd ${PKGDIR_hashtables} || false
           ${CABAL} -vnormal check
       - name: haddock
         run: |
-          $CABAL haddock $ARG_COMPILER --with-haddock $HADDOCK $ARG_TESTS $ARG_BENCH all
+          $CABAL v2-haddock --haddock-all $ARG_COMPILER --with-haddock $HADDOCK $ARG_TESTS $ARG_BENCH all
