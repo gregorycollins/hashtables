@@ -8,7 +8,7 @@
 #
 # For more information, see https://github.com/haskell-CI/haskell-ci
 #
-# version: 0.13.20211030
+# version: 0.15.20220826
 #
 version: ~> 1.0
 language: c
@@ -33,8 +33,8 @@ before_cache:
   - rm -rfv $CABALHOME/packages/head.hackage
 jobs:
   include:
-    - compiler: ghc-9.2.1
-      addons: {"apt":{"packages":["ghc-9.2.1","cabal-install-3.6"],"sources":[{"key_url":"https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x063dab2bdc0b3f9fcebc378bff3aeacef6f88286","sourceline":"deb http://ppa.launchpad.net/hvr/ghc/ubuntu bionic main"}]}}
+    - compiler: ghc-9.2.4
+      addons: {"apt":{"packages":["ghc-9.2.4","cabal-install-3.6"],"sources":[{"key_url":"https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x063dab2bdc0b3f9fcebc378bff3aeacef6f88286","sourceline":"deb http://ppa.launchpad.net/hvr/ghc/ubuntu bionic main"}]}}
       os: linux
     - compiler: ghc-9.0.1
       addons: {"apt":{"packages":["ghc-9.0.1","cabal-install-3.6"],"sources":[{"key_url":"https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x063dab2bdc0b3f9fcebc378bff3aeacef6f88286","sourceline":"deb http://ppa.launchpad.net/hvr/ghc/ubuntu bionic main"}]}}
@@ -85,7 +85,7 @@ before_install:
   - TEST=--enable-tests
   - BENCH=--enable-benchmarks
   - HEADHACKAGE=false
-  - if [ $((HCNUMVER > 90201)) -ne 0 ] ; then HEADHACKAGE=true ; fi
+  - if [ $((HCNUMVER > 90204)) -ne 0 ] ; then HEADHACKAGE=true ; fi
   - rm -f $CABALHOME/config
   - |
     echo "verbose: normal +nowrap +markoutput"          >> $CABALHOME/config
@@ -105,13 +105,14 @@ before_install:
     echo "  url: http://hackage.haskell.org/"           >> $CABALHOME/config
   - |
     if $HEADHACKAGE; then
-    echo "repository head.hackage.ghc.haskell.org"                                        >> $CABALHOME/config
-    echo "   url: https://ghc.gitlab.haskell.org/head.hackage/"                           >> $CABALHOME/config
-    echo "   secure: True"                                                                >> $CABALHOME/config
-    echo "   root-keys: 7541f32a4ccca4f97aea3b22f5e593ba2c0267546016b992dfadcd2fe944e55d" >> $CABALHOME/config
-    echo "              26021a13b401500c8eb2761ca95c61f2d625bfef951b939a8124ed12ecf07329" >> $CABALHOME/config
-    echo "              f76d08be13e9a61a377a85e2fb63f4c5435d40f8feb3e12eb05905edb8cdea89" >> $CABALHOME/config
-    echo "   key-threshold: 3"                                                            >> $CABALHOME/config
+    echo "repository head.hackage.ghc.haskell.org"                                         >> $CABALHOME/config
+    echo "   url: https://ghc.gitlab.haskell.org/head.hackage/"                            >> $CABALHOME/config
+    echo "   secure: True"                                                                 >> $CABALHOME/config
+    echo "   root-keys: 7541f32a4ccca4f97aea3b22f5e593ba2c0267546016b992dfadcd2fe944e55d"  >> $CABALHOME/config
+    echo "              26021a13b401500c8eb2761ca95c61f2d625bfef951b939a8124ed12ecf07329"  >> $CABALHOME/config
+    echo "              f76d08be13e9a61a377a85e2fb63f4c5435d40f8feb3e12eb05905edb8cdea89"  >> $CABALHOME/config
+    echo "   key-threshold: 3"                                                             >> $CABALHOME/config
+    echo "active-repositories: hackage.haskell.org, head.hackage.ghc.haskell.org:override" >> $CABALHOME/config
     fi
 install:
   - ${CABAL} --version
@@ -129,7 +130,9 @@ install:
     echo "packages: ." >> cabal.project
   - if [ $((HCNUMVER >= 80200)) -ne 0 ] ; then echo 'package hashtables' >> cabal.project ; fi
   - "if [ $((HCNUMVER >= 80200)) -ne 0 ] ; then echo '  ghc-options: -Werror=missing-methods' >> cabal.project ; fi"
-  - ""
+  - |
+    echo "tests:             True"   >> cabal.project
+    echo "test-show-details: direct" >> cabal.project
   - |
     if $HEADHACKAGE; then
     echo "allow-newer: $($HCPKG list --simple-output | sed -E 's/([a-zA-Z-]+)-[0-9.]+/*:\1,/g')" >> $CABALHOME/config
@@ -159,7 +162,9 @@ script:
     echo "packages: ${PKGDIR_hashtables}" >> cabal.project
   - if [ $((HCNUMVER >= 80200)) -ne 0 ] ; then echo 'package hashtables' >> cabal.project ; fi
   - "if [ $((HCNUMVER >= 80200)) -ne 0 ] ; then echo '  ghc-options: -Werror=missing-methods' >> cabal.project ; fi"
-  - ""
+  - |
+    echo "tests:             True"   >> cabal.project
+    echo "test-show-details: direct" >> cabal.project
   - |
     if $HEADHACKAGE; then
     echo "allow-newer: $($HCPKG list --simple-output | sed -E 's/([a-zA-Z-]+)-[0-9.]+/*:\1,/g')" >> $CABALHOME/config
@@ -175,7 +180,7 @@ script:
   # cabal check...
   - (cd ${PKGDIR_hashtables} && ${CABAL} -vnormal check)
   # haddock...
-  - ${CABAL} v2-haddock $WITHCOMPILER --with-haddock $HADDOCK ${TEST} ${BENCH} all
+  - ${CABAL} v2-haddock --haddock-all $WITHCOMPILER --with-haddock $HADDOCK ${TEST} ${BENCH} all
 
-# REGENDATA ("0.13.20211030",["--output=.travis.yml","cabal.project","--config=cabal.haskell-ci"])
+# REGENDATA ("0.15.20220826",["--output=.travis.yml","cabal.project","--config=cabal.haskell-ci"])
 # EOF
