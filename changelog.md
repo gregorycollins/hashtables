@@ -1,5 +1,11 @@
 # Hashtables changelog
 
+## 1.3.1
+
+Fix Noncanonical mappend definition warning.
+Support more recent compilers.
+
+
 ## 1.3
 
 Support Hashable 1.4. This new version of Hashable drops the Eq constraint, so the Eq constraint
