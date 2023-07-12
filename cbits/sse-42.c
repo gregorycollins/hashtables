@@ -49,8 +49,7 @@ static inline __m128i fill(small_hash_t v) {
 #define _MODE (SIDD_UWORD_OPS | SIDD_CMP_EQUAL_EACH)
 
 static inline __m128i cmp_mask(__m128i a, __m128i b) {
-    const int mode = SIDD_UWORD_OPS | SIDD_CMP_EQUAL_EACH | SIDD_BIT_MASK;
-    return _mm_cmpistrm(a, b, mode);
+    return _mm_cmpistrm(a, b, _MODE | SIDD_BIT_MASK);
 }
 
 static inline int32_t line_result(uint32_t m, int start) {
