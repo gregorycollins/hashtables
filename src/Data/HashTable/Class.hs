@@ -87,14 +87,17 @@ class HashTable h where
     --
     -- /O(n)/ worst case, /O(1)/ amortized.
     insert   :: (Eq k, Hashable k) => h s k v -> k -> v -> ST s ()
+    insert tbl k v = mutate tbl k (const (Just v, ())) 
 
     -- | Deletes a key-value mapping from a hash table. /O(n)/ worst case,
     -- /O(1)/ amortized.
     delete   :: (Eq k, Hashable k) => h s k v -> k -> ST s ()
+    delete tbl k = mutate tbl k (const (Nothing, ())) 
 
     -- | Looks up a key-value mapping in a hash table. /O(n)/ worst case,
     -- (/O(1)/ for cuckoo hash), /O(1)/ amortized.
     lookup   :: (Eq k, Hashable k) => h s k v -> k -> ST s (Maybe v)
+    lookup tbl k = mutate tbl k (\v -> (v, v))
 
     -- | A strict fold over the key-value records of a hash table in the 'ST'
     -- monad. /O(n)/.
@@ -117,6 +120,7 @@ class HashTable h where
     -- debugging, etc; time complexity depends on the underlying hash table
     -- implementation. /O(n)/.
     computeOverhead :: h s k v -> ST s Double
+    {-# MINIMAL new, newSized, foldM, mapM_, lookupIndex, nextByIndex, computeOverhead, mutateST, (mutate), (insert), (delete), (lookup) #-}
 
 
 ------------------------------------------------------------------------------
@@ -159,9 +163,7 @@ fromListWithSizeHint n l = do
 ------------------------------------------------------------------------------
 -- | Given a hash table, produce a list of key-value pairs. /O(n)/.
 toList :: (HashTable h) => h s k v -> ST s [(k,v)]
-toList ht = do
-    l <- foldM f [] ht
-    return l
+toList = foldM f [] 
 
   where
     f !l !t = return (t:l)
