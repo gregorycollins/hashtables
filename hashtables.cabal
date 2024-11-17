@@ -13,9 +13,12 @@ Build-type:          Simple
 
 
 tested-with:
-  GHC == 9.6.1
-  GHC == 9.4.4
-  GHC == 9.2.7
+  GHC == 9.12.0
+  GHC == 9.10.1
+  GHC == 9.8.2
+  GHC == 9.6.6
+  GHC == 9.4.8
+  GHC == 9.2.8
   GHC == 9.0.2
   GHC == 8.10.7
   GHC == 8.8.4
@@ -23,8 +26,6 @@ tested-with:
   GHC == 8.4.4
   GHC == 8.2.2
   GHC == 8.0.2
-  GHC == 7.10.3
-  GHC == 7.8.4
 
 Description:
   This package provides a couple of different implementations of mutable hash
@@ -194,7 +195,7 @@ Library
                      Data.HashTable.Internal.Linear.Bucket
 
   Build-depends:     base      >= 4.7 && <5,
-                     hashable  >= 1.4 && < 1.5,
+                     hashable  >= 1.4 && < 1.6,
                      primitive,
                      vector    >= 0.7 && <0.14
 
@@ -272,7 +273,7 @@ test-suite testsuite
     cpp-options: -DBOUNDS_CHECKING
 
   Build-depends:     base                       >= 4     && <5,
-                     hashable                   >= 1.4 && < 1.5,
+                     hashable                   >= 1.4 && < 1.6,
                      mwc-random                 >= 0.8   && <0.16,
                      primitive,
                      QuickCheck                 >= 2.3.0.2,
