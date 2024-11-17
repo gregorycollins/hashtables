@@ -6,14 +6,14 @@
 #
 #   haskell-ci regenerate
 #
-# For more information, see https://github.com/haskell-CI/haskell-ci
+# For more information, see https://github.com/andreasabel/haskell-ci
 #
-# version: 0.15.20220826
+# version: 0.19.20241111
 #
 version: ~> 1.0
 language: c
 os: linux
-dist: bionic
+dist: jammy
 git:
   # whether to recursively clone submodules
   submodules: false
@@ -33,41 +33,47 @@ before_cache:
   - rm -rfv $CABALHOME/packages/head.hackage
 jobs:
   include:
-    - compiler: ghc-9.4.2
-      addons: {"apt":{"packages":["ghc-9.4.2","cabal-install-3.6"],"sources":[{"key_url":"https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x063dab2bdc0b3f9fcebc378bff3aeacef6f88286","sourceline":"deb http://ppa.launchpad.net/hvr/ghc/ubuntu bionic main"}]}}
+    - compiler: ghc-9.12.0
+      addons: {"apt":{"packages":["ghc-9.12.0","cabal-install-3.12.1.0"],"sources":[{"key_url":"https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x063dab2bdc0b3f9fcebc378bff3aeacef6f88286","sourceline":"deb http://ppa.launchpad.net/hvr/ghc/ubuntu jammy main"}]}}
       os: linux
-    - compiler: ghc-9.2.4
-      addons: {"apt":{"packages":["ghc-9.2.4","cabal-install-3.6"],"sources":[{"key_url":"https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x063dab2bdc0b3f9fcebc378bff3aeacef6f88286","sourceline":"deb http://ppa.launchpad.net/hvr/ghc/ubuntu bionic main"}]}}
+    - compiler: ghc-9.10.1
+      addons: {"apt":{"packages":["ghc-9.10.1","cabal-install-3.12.1.0"],"sources":[{"key_url":"https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x063dab2bdc0b3f9fcebc378bff3aeacef6f88286","sourceline":"deb http://ppa.launchpad.net/hvr/ghc/ubuntu jammy main"}]}}
       os: linux
-    - compiler: ghc-9.0.1
-      addons: {"apt":{"packages":["ghc-9.0.1","cabal-install-3.6"],"sources":[{"key_url":"https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x063dab2bdc0b3f9fcebc378bff3aeacef6f88286","sourceline":"deb http://ppa.launchpad.net/hvr/ghc/ubuntu bionic main"}]}}
+    - compiler: ghc-9.8.2
+      addons: {"apt":{"packages":["ghc-9.8.2","cabal-install-3.12.1.0"],"sources":[{"key_url":"https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x063dab2bdc0b3f9fcebc378bff3aeacef6f88286","sourceline":"deb http://ppa.launchpad.net/hvr/ghc/ubuntu jammy main"}]}}
+      os: linux
+    - compiler: ghc-9.6.6
+      addons: {"apt":{"packages":["ghc-9.6.6","cabal-install-3.12.1.0"],"sources":[{"key_url":"https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x063dab2bdc0b3f9fcebc378bff3aeacef6f88286","sourceline":"deb http://ppa.launchpad.net/hvr/ghc/ubuntu jammy main"}]}}
+      os: linux
+    - compiler: ghc-9.4.8
+      addons: {"apt":{"packages":["ghc-9.4.8","cabal-install-3.12.1.0"],"sources":[{"key_url":"https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x063dab2bdc0b3f9fcebc378bff3aeacef6f88286","sourceline":"deb http://ppa.launchpad.net/hvr/ghc/ubuntu jammy main"}]}}
+      os: linux
+    - compiler: ghc-9.2.8
+      addons: {"apt":{"packages":["ghc-9.2.8","cabal-install-3.12.1.0"],"sources":[{"key_url":"https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x063dab2bdc0b3f9fcebc378bff3aeacef6f88286","sourceline":"deb http://ppa.launchpad.net/hvr/ghc/ubuntu jammy main"}]}}
+      os: linux
+    - compiler: ghc-9.0.2
+      addons: {"apt":{"packages":["ghc-9.0.2","cabal-install-3.12.1.0"],"sources":[{"key_url":"https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x063dab2bdc0b3f9fcebc378bff3aeacef6f88286","sourceline":"deb http://ppa.launchpad.net/hvr/ghc/ubuntu jammy main"}]}}
       os: linux
     - compiler: ghc-8.10.7
-      addons: {"apt":{"packages":["ghc-8.10.7","cabal-install-3.6"],"sources":[{"key_url":"https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x063dab2bdc0b3f9fcebc378bff3aeacef6f88286","sourceline":"deb http://ppa.launchpad.net/hvr/ghc/ubuntu bionic main"}]}}
+      addons: {"apt":{"packages":["ghc-8.10.7","cabal-install-3.12.1.0"],"sources":[{"key_url":"https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x063dab2bdc0b3f9fcebc378bff3aeacef6f88286","sourceline":"deb http://ppa.launchpad.net/hvr/ghc/ubuntu jammy main"}]}}
       os: linux
     - compiler: ghc-8.8.4
-      addons: {"apt":{"packages":["ghc-8.8.4","cabal-install-3.6"],"sources":[{"key_url":"https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x063dab2bdc0b3f9fcebc378bff3aeacef6f88286","sourceline":"deb http://ppa.launchpad.net/hvr/ghc/ubuntu bionic main"}]}}
+      addons: {"apt":{"packages":["ghc-8.8.4","cabal-install-3.12.1.0"],"sources":[{"key_url":"https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x063dab2bdc0b3f9fcebc378bff3aeacef6f88286","sourceline":"deb http://ppa.launchpad.net/hvr/ghc/ubuntu jammy main"}]}}
       os: linux
     - compiler: ghc-8.6.5
-      addons: {"apt":{"packages":["ghc-8.6.5","cabal-install-3.6"],"sources":[{"key_url":"https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x063dab2bdc0b3f9fcebc378bff3aeacef6f88286","sourceline":"deb http://ppa.launchpad.net/hvr/ghc/ubuntu bionic main"}]}}
+      addons: {"apt":{"packages":["ghc-8.6.5","cabal-install-3.12.1.0"],"sources":[{"key_url":"https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x063dab2bdc0b3f9fcebc378bff3aeacef6f88286","sourceline":"deb http://ppa.launchpad.net/hvr/ghc/ubuntu jammy main"}]}}
       os: linux
     - compiler: ghc-8.4.4
-      addons: {"apt":{"packages":["ghc-8.4.4","cabal-install-3.6"],"sources":[{"key_url":"https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x063dab2bdc0b3f9fcebc378bff3aeacef6f88286","sourceline":"deb http://ppa.launchpad.net/hvr/ghc/ubuntu bionic main"}]}}
+      addons: {"apt":{"packages":["ghc-8.4.4","cabal-install-3.12.1.0"],"sources":[{"key_url":"https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x063dab2bdc0b3f9fcebc378bff3aeacef6f88286","sourceline":"deb http://ppa.launchpad.net/hvr/ghc/ubuntu jammy main"}]}}
       os: linux
     - compiler: ghc-8.2.2
-      addons: {"apt":{"packages":["ghc-8.2.2","cabal-install-3.6"],"sources":[{"key_url":"https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x063dab2bdc0b3f9fcebc378bff3aeacef6f88286","sourceline":"deb http://ppa.launchpad.net/hvr/ghc/ubuntu bionic main"}]}}
+      addons: {"apt":{"packages":["ghc-8.2.2","cabal-install-3.12.1.0"],"sources":[{"key_url":"https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x063dab2bdc0b3f9fcebc378bff3aeacef6f88286","sourceline":"deb http://ppa.launchpad.net/hvr/ghc/ubuntu jammy main"}]}}
       os: linux
     - compiler: ghc-8.0.2
-      addons: {"apt":{"packages":["ghc-8.0.2","cabal-install-3.6"],"sources":[{"key_url":"https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x063dab2bdc0b3f9fcebc378bff3aeacef6f88286","sourceline":"deb http://ppa.launchpad.net/hvr/ghc/ubuntu bionic main"}]}}
-      os: linux
-    - compiler: ghc-7.10.3
-      addons: {"apt":{"packages":["ghc-7.10.3","cabal-install-3.6"],"sources":[{"key_url":"https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x063dab2bdc0b3f9fcebc378bff3aeacef6f88286","sourceline":"deb http://ppa.launchpad.net/hvr/ghc/ubuntu bionic main"}]}}
-      os: linux
-    - compiler: ghc-7.8.4
-      addons: {"apt":{"packages":["ghc-7.8.4","cabal-install-3.6"],"sources":[{"key_url":"https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x063dab2bdc0b3f9fcebc378bff3aeacef6f88286","sourceline":"deb http://ppa.launchpad.net/hvr/ghc/ubuntu bionic main"}]}}
+      addons: {"apt":{"packages":["ghc-8.0.2","cabal-install-3.12.1.0"],"sources":[{"key_url":"https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x063dab2bdc0b3f9fcebc378bff3aeacef6f88286","sourceline":"deb http://ppa.launchpad.net/hvr/ghc/ubuntu jammy main"}]}}
       os: linux
     - compiler: ghc-head
-      addons: {"apt":{"packages":["ghc-head","cabal-install-head"],"sources":[{"key_url":"https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x063dab2bdc0b3f9fcebc378bff3aeacef6f88286","sourceline":"deb http://ppa.launchpad.net/hvr/ghc/ubuntu bionic main"}]}}
+      addons: {"apt":{"packages":["ghc-head","cabal-install-head"],"sources":[{"key_url":"https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x063dab2bdc0b3f9fcebc378bff3aeacef6f88286","sourceline":"deb http://ppa.launchpad.net/hvr/ghc/ubuntu jammy main"}]}}
       os: linux
   allow_failures:
     - compiler: ghc-head
@@ -88,7 +94,7 @@ before_install:
   - TEST=--enable-tests
   - BENCH=--enable-benchmarks
   - HEADHACKAGE=false
-  - if [ $((HCNUMVER > 90402)) -ne 0 ] ; then HEADHACKAGE=true ; fi
+  - if [ $((HCNUMVER >= 91200)) -ne 0 ] ; then HEADHACKAGE=true ; fi
   - rm -f $CABALHOME/config
   - |
     echo "verbose: normal +nowrap +markoutput"          >> $CABALHOME/config
@@ -185,5 +191,5 @@ script:
   # haddock...
   - ${CABAL} v2-haddock --haddock-all $WITHCOMPILER --with-haddock $HADDOCK ${TEST} ${BENCH} all
 
-# REGENDATA ("0.15.20220826",["--output=.travis.yml","cabal.project","--config=cabal.haskell-ci"])
+# REGENDATA ("0.19.20241111",["--output=.travis.yml","cabal.project","--config=cabal.haskell-ci"])
 # EOF
