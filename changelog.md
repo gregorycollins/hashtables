@@ -1,5 +1,11 @@
 # Hashtables changelog
 
+## 1.4.0
+
+Replace deprecated Mutable Array function, which modifies the signature of the `length`
+function and hence the API.
+Support more recent compilers.
+
 ## 1.3.1
 
 Fix Noncanonical mappend definition warning.
