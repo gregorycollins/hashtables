@@ -106,8 +106,8 @@ writeArray (IA a) idx val = do
 
 
 ------------------------------------------------------------------------------
-length :: IntArray s -> Int
-length (IA a) = A.sizeofMutableByteArray a `div` wordSizeInBytes
+length :: IntArray s -> ST s Int
+length (IA a) = (`div` wordSizeInBytes) <$> A.getSizeofMutableByteArray a
 
 
 ------------------------------------------------------------------------------

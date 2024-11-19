@@ -15,7 +15,7 @@ module Data.HashTable.Test.Common
 import           Control.Applicative                  (pure, (<$>))
 #endif
 import           Control.Applicative                  ((<|>))
-import           Control.Monad                        (foldM_, liftM, when)
+import           Control.Monad                        (foldM_, when)
 import qualified Control.Monad                        as Monad
 import           Data.IORef
 import           Data.List                            hiding (delete, insert,
@@ -32,7 +32,7 @@ import           Test.Framework.Providers.QuickCheck2
 import           Test.HUnit                           (assertEqual,
                                                        assertFailure)
 import           Test.QuickCheck                      (arbitrary, choose,
-                                                       sample')
+                                                       generate)
 import           Test.QuickCheck.Monadic              (PropertyM, assert,
                                                        forAllM, monadicIO, pre,
                                                        run)
@@ -242,7 +242,7 @@ testGrowTable prefix dummyArg =
     prop n = do
         announceQ "growTable" n
         ht <- run $ go n
-        i <- liftM head $ run $ sample' $ choose (0,n-1)
+        i <- run $ generate $ choose (0,n-1)
 
         v <- run $ lookup ht i
         assertEq ("lookup " ++ show i) (Just i) v
@@ -290,7 +290,7 @@ testDelete prefix dummyArg =
 
         ht <- run $ go n
 
-        i <- liftM head $ run $ sample' $ choose (4,n-1)
+        i <- run $ generate $ choose (4,n-1)
         v <- run $ lookup ht i
         assertEq ("lookup " ++ show i) (Just i) v
 
