@@ -277,10 +277,9 @@ test-suite testsuite
                      mwc-random                 >= 0.8   && <0.16,
                      primitive,
                      QuickCheck                 >= 2.3.0.2,
-                     HUnit                      >= 1.2   && <2,
-                     test-framework             >= 0.3.1 && <0.9,
-                     test-framework-quickcheck2 >= 0.2.6 && <0.4,
-                     test-framework-hunit       >= 0.2.6 && <3,
+                     tasty                      >= 1.4 && <= 1.6,
+                     tasty-quickcheck           >= 0.10 && <0.12,
+                     tasty-hunit                >= 0.10 && <0.11,
                      vector                     >= 0.7
 
   cpp-options: -DTESTSUITE
