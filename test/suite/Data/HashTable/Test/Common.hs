@@ -347,7 +347,7 @@ data Action = Lookup Int
 
 
 timeout_ :: Int -> IO a -> IO ()
-#ifdef PORTABLE
+#if defined(PORTABLE) || defined(wasm32_HOST_ARCH)
 timeout_ t m = timeout t m >>= maybe (assertFailure "timeout")
                                      (const $ return ())
 #else
