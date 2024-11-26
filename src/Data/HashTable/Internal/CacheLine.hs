@@ -251,8 +251,11 @@ firstBitSet# i# = word2Int# ((or# zeroCase# posw#))
                        27#
     !idx         = I# (word2Int# idxW#)
     !(I8# pos8#) = U.unsafeIndex deBruijnBitPositions idx
+#if __GLASGOW_HASKELL__ >= 900
+    !posw#       = int2Word# (int8ToInt# pos8#)
+#else
     !posw#       = int2Word# pos8#
-
+#endif
 #endif
 
 
@@ -745,7 +748,7 @@ cacheLineSearch :: IntArray s        -- ^ vector to search
                                      -- \"-1\" if not found
 cacheLineSearch !vec !start !value = do
 #ifdef NO_C_SEARCH
-    let !vlen  = M.length vec
+    vlen  <- M.length vec
     let !st1   = vlen - start
     let !nvlen = numElemsInCacheLine - st1
     let adv    = (start + cacheLineIntMask) .&. complement cacheLineIntMask
@@ -776,7 +779,7 @@ cacheLineSearch2 :: IntArray s        -- ^ vector to search
                                      -- \"-1\" if not found
 cacheLineSearch2 !vec !start !value !value2 = do
 #ifdef NO_C_SEARCH
-    let !vlen  = M.length vec
+    !vlen  <- M.length vec
     let !st1   = vlen - start
     let !nvlen = numElemsInCacheLine - st1
     let adv    = (start + cacheLineIntMask) .&. complement cacheLineIntMask
@@ -807,7 +810,7 @@ cacheLineSearch3 :: IntArray s        -- ^ vector to search
                                      -- \"-1\" if not found
 cacheLineSearch3 !vec !start !value !value2 !value3 = do
 #ifdef NO_C_SEARCH
-    let !vlen  = M.length vec
+    !vlen  <- M.length vec
     let !st1   = vlen - start
     let !nvlen = numElemsInCacheLine - st1
     let adv    = (start + cacheLineIntMask) .&. complement cacheLineIntMask
