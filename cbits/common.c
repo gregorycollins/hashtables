@@ -3,7 +3,7 @@
 #ifdef WIN32
 #include <windows.h>
 #else
-#include <signal.h>
+#include <stdlib.h>
 #include <unistd.h>
 #endif
 
@@ -19,11 +19,7 @@ void suicide(volatile int* check, int t) {
 #endif
     if (*check) {
         printf("timeout expired, dying!!\n");
-#ifdef WIN32
-        abort();
-#else
-        raise(SIGKILL);
-#endif
+        exit(1);
     }
 }
 
