@@ -2,7 +2,7 @@
 
 module Main where
 
-import Test.Framework (defaultMain)
+import Test.Tasty (defaultMain, testGroup)
 ------------------------------------------------------------------------------
 import qualified Data.HashTable.Test.Common as Common
 import qualified Data.HashTable.ST.Basic as B
@@ -13,7 +13,7 @@ import qualified Data.HashTable.IO as IO
 
 ------------------------------------------------------------------------------
 main :: IO ()
-main = defaultMain tests
+main = defaultMain $ testGroup "All" tests
   where
     dummyBasicTable = Common.dummyTable
                       :: forall k v . IO.IOHashTable (B.HashTable) k v

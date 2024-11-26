@@ -26,13 +26,9 @@ import qualified Data.Vector.Mutable                  as MV
 import           Prelude                              hiding (lookup, mapM_)
 import           System.Random.MWC
 import           System.Timeout
-import           Test.Framework
-import           Test.Framework.Providers.HUnit
-import           Test.Framework.Providers.QuickCheck2
-import           Test.HUnit                           (assertEqual,
-                                                       assertFailure)
-import           Test.QuickCheck                      (arbitrary, choose,
-                                                       generate)
+import           Test.Tasty
+import           Test.Tasty.HUnit                     hiding (assert)
+import           Test.Tasty.QuickCheck
 import           Test.QuickCheck.Monadic              (PropertyM, assert,
                                                        forAllM, monadicIO, pre,
                                                        run)
@@ -49,7 +45,7 @@ import           Foreign.C.Types                      (CInt (..))
 
 ------------------------------------------------------------------------------
 type FixedTableType h = forall k v . IOHashTable h k v
-type HashTest = forall h . C.HashTable h => String -> FixedTableType h -> Test
+type HashTest = forall h . C.HashTable h => String -> FixedTableType h -> TestTree
 data SomeTest = SomeTest HashTest
 
 
@@ -95,7 +91,7 @@ dummyTable = undefined
 
 
 ------------------------------------------------------------------------------
-tests :: C.HashTable h => String -> FixedTableType h -> Test
+tests :: C.HashTable h => String -> FixedTableType h -> TestTree
 tests prefix dummyArg = testGroup prefix $ map f ts
   where
     f (SomeTest ht) = ht prefix dummyArg
