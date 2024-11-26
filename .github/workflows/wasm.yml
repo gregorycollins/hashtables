@@ -1,0 +1,43 @@
+name: ci-wasm
+on:
+  - push
+  - pull_request
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  wasm:
+    runs-on: ubuntu-latest
+    env:
+      GHC_WASM_META_REV: a04cc1a2206d2030326e1d49be9c6a94ee4283a3
+    strategy:
+      matrix:
+        ghc: ['9.10']
+      fail-fast: false
+    steps:
+    - name: setup-ghc-wasm32-wasi
+      run: |
+        cd $(mktemp -d)
+        curl -L https://gitlab.haskell.org/ghc/ghc-wasm-meta/-/archive/$GHC_WASM_META_REV/ghc-wasm-meta.tar.gz | tar xz --strip-components=1
+        ./setup.sh
+        ~/.ghc-wasm/add_to_github_path.sh
+      env:
+        FLAVOUR: ${{ matrix.ghc }}
+    - uses: actions/checkout@v4
+    - uses: actions/cache@v3
+      with:
+        path: |
+          ~/.ghc-wasm/.cabal/store
+        key: wasi-${{ runner.os }}-${{ env.GHC_WASM_META_REV }}-flavour-${{ matrix.ghc }}-${{ github.sha }}
+        restore-keys: |
+          wasi-${{ runner.os }}-${{ env.GHC_WASM_META_REV }}-flavour-${{ matrix.ghc }}-
+    - name: Build
+      run: |
+        mv cabal.project.wasi cabal.project.local
+        wasm32-wasi-cabal build --enable-tests
+        wasm32-wasi-cabal list-bin hashtables:testsuite
+    - name: Test
+      run: |
+        wasmtime.sh $(wasm32-wasi-cabal list-bin hashtables:testsuite)
