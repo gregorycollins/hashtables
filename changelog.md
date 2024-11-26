@@ -1,31 +1,36 @@
 # Hashtables changelog
 
+## 1.4.1
+
+ - Fix broken compile when compiling with `-fportable` flag.
+ - Make it build with GHC WASM (Bodigrim).
+
 ## 1.4.0
 
-Replace deprecated Mutable Array function, which modifies the signature of the `length`
-function and hence the API.
-Support more recent compilers.
+ - Replace deprecated Mutable Array function, which modifies the signature of the `length`
+   function and hence the API.
+ - Support more recent compilers.
 
 ## 1.3.1
 
-Fix Noncanonical mappend definition warning.
-Support more recent compilers.
+ - Fix Noncanonical mappend definition warning.
+ - Support more recent compilers.
 
 
 ## 1.3
 
-Support Hashable 1.4. This new version of Hashable drops the Eq constraint, so the Eq constraint
-needs to be dropped in the SPECIALIZE statements in Hashtables.
+ - Support Hashable 1.4. This new version of Hashable drops the Eq constraint, so the Eq constraint
+   needs to be dropped in the SPECIALIZE statements in Hashtables.
 
 ## 1.2.4.2
 
-Cabal file: add missing other-modules
-Silence import warnings. Know that we require ghc >= 7.8.
-Fix build with GHC 9.2
+ - Cabal file: add missing other-modules
+ - Silence import warnings. Know that we require ghc >= 7.8.
+ - Fix build with GHC 9.2
 
 ## 1.2.4.1
 
-Update some test suite dep upper bounds.
+ - Update some test suite dep upper bounds.
 
 ## 1.2.4.0
 
