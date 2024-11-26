@@ -290,11 +290,12 @@ test-suite testsuite
 
   if impl(ghc >= 6.12.0)
     ghc-options: -Wall -fwarn-tabs -funbox-strict-fields
-                 -fno-warn-unused-do-bind -threaded
+                 -fno-warn-unused-do-bind
   else
-    ghc-options: -Wall -fwarn-tabs -funbox-strict-fields -threaded
+    ghc-options: -Wall -fwarn-tabs -funbox-strict-fields
 
-
+  if !arch(wasm32)
+    ghc-options: -threaded
 
 source-repository head
   type:     git
