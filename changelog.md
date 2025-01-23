@@ -1,5 +1,10 @@
 # Hashtables changelog
 
+## 1.4.2
+
+ - Fix C compile errors in cbits.
+ - Bump lower bound for QuickCheck.
+
 ## 1.4.1
 
  - Fix broken compile when compiling with `-fportable` flag.
