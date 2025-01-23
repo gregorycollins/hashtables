@@ -29,7 +29,7 @@ static void check_fill(small_hash_t v) {
 #undef F
 }
 
-void check_impl_specific() {
+void check_impl_specific(int* num_tests, int* num_errors) {
     check_fill(0);
     check_fill((small_hash_t) (-1));
     check_fill((small_hash_t) (-5));
