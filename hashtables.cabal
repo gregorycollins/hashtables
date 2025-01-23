@@ -276,7 +276,7 @@ test-suite testsuite
                      hashable                   >= 1.4 && < 1.6,
                      mwc-random                 >= 0.8   && <0.16,
                      primitive,
-                     QuickCheck                 >= 2.3.0.2,
+                     QuickCheck                 >= 2.9,
                      tasty                      >= 1.4 && <= 1.6,
                      tasty-quickcheck           >= 0.10 && <0.12,
                      tasty-hunit                >= 0.10 && <0.11,
