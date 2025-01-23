@@ -198,6 +198,6 @@ int line_search_3(small_hash_t* array, int start, small_hash_t x1,
     return line_result(m, start);
 }
 
-void check_impl_specific() {
+void check_impl_specific(int* num_tests, int* num_errors) {
 
 }
