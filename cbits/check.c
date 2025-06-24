@@ -35,7 +35,7 @@ void CHECK(int actual, int expected, char* what) {
 }
 
 
-void check_forward_search_2() {
+void check_forward_search_2(void) {
     /* forward_search_2 */
     /*   - offset zero  */
     CHECK(forward_search_2(t_sevens, 0, NUMH, 0, 7   ),  0, "fs2-sevens-ok-1"  );
@@ -76,7 +76,7 @@ void check_forward_search_2() {
     CHECK(forward_search_2(t_mixed, 16, NUMH, 8,    9), 31, "fs2-o-mixed-ok-6"  );
 }
 
-void check_forward_search_3() {
+void check_forward_search_3(void) {
     /* forward_search_3 */
     /*   - offset zero  */
     CHECK(forward_search_3(t_sevens, 0, NUMH, 0,  7, 88),  0, "fs3-sevens-ok-1"  );
@@ -119,7 +119,7 @@ void check_forward_search_3() {
     CHECK(forward_search_3(t_mixed, 16, NUMH, 8, 33, 9 ), 31, "fs3-o-mixed-ok-7"  );
 }
 
-void check_line_search() {
+void check_line_search(void) {
     CHECK(line_search(t_sevens,  0, 7),  0, "ls-7s-ok-1");
     CHECK(line_search(t_sevens,  5, 7),  5, "ls-7s-ok-2");
     CHECK(line_search(t_sevens, 31, 7), 31, "ls-7s-ok-3");
@@ -135,7 +135,7 @@ void check_line_search() {
     CHECK(line_search(t_mixed, 16, 1), 20, "ls-m-ok-5");
 }
 
-void check_line_search_2() {
+void check_line_search_2(void) {
     CHECK(line_search_2(t_sevens,  0, 7, 3),  0, "ls2-7s-ok-1");
     CHECK(line_search_2(t_sevens,  5, 7, 9),  5, "ls2-7s-ok-2");
     CHECK(line_search_2(t_sevens, 31, 0, 7), 31, "ls2-7s-ok-3");
@@ -151,7 +151,7 @@ void check_line_search_2() {
     CHECK(line_search_2(t_mixed, 16, 3, 1), 20, "ls2-m-ok-5");
 }
 
-void check_line_search_3() {
+void check_line_search_3(void) {
     CHECK(line_search_3(t_sevens,  0, 4, 7, 3),  0, "ls2-7s-ok-1");
     CHECK(line_search_3(t_sevens,  5, 7, 4, 9),  5, "ls2-7s-ok-2");
     CHECK(line_search_3(t_sevens, 31, 0, 7, 4), 31, "ls2-7s-ok-3");
@@ -168,7 +168,7 @@ void check_line_search_3() {
 }
 
 
-int main() {
+int main(void) {
     check_forward_search_2();
     check_forward_search_3();
     check_line_search();
