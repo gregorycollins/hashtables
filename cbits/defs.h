@@ -30,6 +30,8 @@ int line_search_3(small_hash_t* array, int start, small_hash_t x1,
 void suicide(volatile int* check, int i);
 
 void CHECK(int actual, int expected, char* what);
-void check_impl_specific(int* num_tests, int* num_errors);
+
+/* Not implemented yet so no parameters needed */
+void check_impl_specific(/* int* num_tests, int* num_errors*/ void);
 
 #endif  /* HASHTABLES_DEFS_H */
